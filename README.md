@@ -31,7 +31,7 @@ This repository is set up for easy testing of LibGodot.
 
 Execute the following commands
 ```
-git clone --recursive https://github.com/migeran/libgodot_project
+git clone https://github.com/V-Sekai/libgodot_project.git
 
 cd libgodot_project
 
