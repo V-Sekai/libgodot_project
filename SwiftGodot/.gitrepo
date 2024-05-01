@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/migeran/SwiftGodot.git
+	branch = libgodot_migeran
+	commit = 26fc59a757d4b31691bbf15e88c909cc921158b3
+	parent = be52284bfe5661a7b391a22d5b0b9bf5867b548b
+	method = merge
+	cmdver = 0.4.6
