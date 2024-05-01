@@ -54,6 +54,7 @@ cd samples/cpp_sample
 mkdir build
 cmake -S . -B build
 cd build
+make
 ./sample
 ```
 
