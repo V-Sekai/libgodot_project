@@ -3,9 +3,9 @@ Migeran LibGodot Project
 
 ## Features
 
-* Compile Godot Engine as either static or shared library.
+* Compile Godot Engine as either a static or shared library.
 * Expose Godot Engine controls (startup, iteration, shutdown) over the GDExtension API to a host process.
-* On Apple Platforms, Godot Engine windows (both the main window, and other windows created after startup) may be rendered into surfaces provided by the host process.
+* On Apple Platforms, Godot Engine windows (both the main window and other windows created after startup) may be rendered into surfaces provided by the host process.
   * This support can be extended to other platforms, read on for details.
 * Sample applications
   * C++ Sample (tested on MacOS and Linux)
@@ -13,7 +13,8 @@ Migeran LibGodot Project
 
 ## Why LibGodot?
 
-LibGodot has a number of different use cases.
+LibGodot has several different use cases.
+
 * Control Godot Engine from a host application
   * E.g. Start Godot from a .NET process to use standard .NET tooling
 * Use it for automation of development tasks (e.g. building an asset pipeline using a Python GDExtension API) 
@@ -44,7 +45,7 @@ cd libgodot_project
 
 ### C++ Sample
 
-The C++ sample shows how Godot can be controlled by a host process, by displaying its own window.
+The C++ sample shows how Godot can be controlled by a host process, by displaying its window.
 
 After libgodot is compiled successfully, run the following commands to test the C++ sample:
 
@@ -58,13 +59,13 @@ cd build
 
 ### SwiftUI Sample
 
-To test the SwiftUI sample, just open the ios_sample project in XCode 15.1+, build it and run on any iOS device. (iOS Simulator is not supported due to Godot limitations.)
+To test the SwiftUI sample, just open the ios_sample project in XCode 15.1+, build it, and run it on any iOS device. (iOS Simulator is not supported due to Godot limitations.)
 
 Note: You will need to select a development team in the XCode project to sign the application.
 
 ## Migeran LibGodot Design
 
-The core idea of the LibGodot feature is to build upon Godot's strong extension capabilities: its modularity, powerful type system and the GDExtension API.
+The core idea of the LibGodot feature is to build upon Godot's strong extension capabilities: its modularity, powerful type system, and the GDExtension API.
 
 The main advantage of this approach is, that this way LibGodot may be used from any language that has a GDExtension binding (e.g. C++, Swift, Rust, Python, ... etc.), with only minimal changes to the binding.
 
@@ -116,13 +117,13 @@ Note: Due to Godot's internal architecture (the use of global data structures an
 Note: UI embedding is currently implemented for Apple platforms. Please read the [Next Steps](#next-steps) section for more information on the status of other platforms. 
 
 To allow for embedding the Godot UI into a host process the host process needs to be able to pass the necessary data about a native surface where 
-Godot may render its contents. The form of this native surface is entirely platform and rendering backend specific.
+Godot may render its contents. The form of this native surface is entirely platform and rendering backend-specific.
 
 The Migeran LibGodot design adds the following types to Godot to allow this:
 
-* A new ``DisplayServerEmbedded`` implementation which uses externally provided native surfaces as its rendering targets.
-* A ``RenderingNativeSurface`` class and its associated platform specific subclasses, e.g. ``RenderingNativeSurfaceApple``.
-* The ``Window`` class is extended by a ``set_native_surface(Ref<RenderingNativeSurface>)`` method which allows specifying the rendering target of a Window in a typesafe, platform independent manner. It is even possible to change the rendering target of a Window dynamically during its lifecycle. 
+* A new `DisplayServerEmbedded` implementation that uses externally provided native surfaces as its rendering targets.
+* A ``RenderingNativeSurface`` class and its associated platform-specific subclasses, e.g. ``RenderingNativeSurfaceApple``.
+* The ``Window`` class is extended by a ``set_native_surface(Ref<RenderingNativeSurface>)`` method which allows specifying the rendering target of a Window in a typesafe, platform-independent manner. It is even possible to change the rendering target of a Window dynamically during its lifecycle. 
 
 These classes are all exposed to the GDExtension API, so it is easy to use them from the host process.
 
@@ -138,11 +139,11 @@ Since all these classes are exposed over the GDExtension API, these can be seaml
 
 ### Rationale for RenderingNativeSurface Design
 
-For those who are familiar with Godot Engine internals: there was already a way to pass in platform specific native surface data (called ``WindowPlatformData``) during initialization.
+For those who are familiar with Godot Engine internals: there was already a way to pass in platform-specific native surface data (called ``WindowPlatformData``) during initialization.
 
-Why is this refactoring necessary to a full fledged reference counted object?
+Why is this refactoring necessary to a full-fledged reference counted object?
 
-* We chose reference counting because it makes it easier to use on the client side, no need to manage the lifecycle manually. Earlier versions of this PR used simple Godot Objects, but they required manual memory management which was error prone.
+* We chose reference counting because it makes it easier to use on the client side, no need to manage the lifecycle manually. Earlier versions of this PR used simple Godot Objects, but they required manual memory management which was error-prone.
 
 * While on Apple platforms it is very easy to pass in a ``CAMetalLayer`` reference, and Metal (and thus MoltenVk) will happily render into it, other platforms impose way more restrictions.
   * For example: On Windows and Linux a separate Vulkan instance and the use of external textures is required to render Godot on a separate thread from the host application's main renderer thread.
@@ -159,13 +160,13 @@ We are happy to discuss any part of the design, naming conventions, additional f
 
 ### Merging for Godot 4.3 as an Experimental Feature
 
-* We propose to merge the current LibGodot patch as an experimental feature in Godot 4.3, because it is already very usable in its current form for many use cases.
+* We propose to merge the current LibGodot patch as an experimental feature in Godot 4.3 because it is already very usable in its current form for many use cases.
 
 ### Godot 4.4 Developments
 
-During the Godot 4.4 development cycle additional features may be added, for Example:
+During the Godot 4.4 development cycle, additional features may be added, for Example:
 
-* Support for additional platforms for UI embedding: Android, Windows, Linux (both X11 and Wayland).
+* Support for additional platforms for UI embedding: Android, Windows, and Linux (both X11 and Wayland).
 * Support for OpenGL (Native / ANGLE) UI embedding on all platforms.
 * Add a Configuration API that can be used on startup instead of supplying command line parameters. 
 
