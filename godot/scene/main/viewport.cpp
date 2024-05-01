@@ -856,9 +856,10 @@ void Viewport::_process_picking() {
 
 							if (send_event) {
 								co->_input_event_call(this, ev, res[i].shape);
-								if (physics_object_picking_first_only) {
-									break;
-								}
+							}
+
+							if (physics_object_picking_first_only) {
+								break;
 							}
 						}
 					}
@@ -1461,6 +1462,8 @@ void Viewport::_gui_show_tooltip() {
 	panel->set_flag(Window::FLAG_NO_FOCUS, true);
 	panel->set_flag(Window::FLAG_POPUP, false);
 	panel->set_flag(Window::FLAG_MOUSE_PASSTHROUGH, true);
+	// A non-embedded tooltip window will only be transparent if per_pixel_transparency is allowed in the main Viewport.
+	panel->set_flag(Window::FLAG_TRANSPARENT, true);
 	panel->set_wrap_controls(true);
 	panel->add_child(base_tooltip);
 	panel->gui_parent = this;
@@ -1469,17 +1472,25 @@ void Viewport::_gui_show_tooltip() {
 
 	tooltip_owner->add_child(gui.tooltip_popup);
 
+	Window *window = Object::cast_to<Window>(gui.tooltip_popup->get_embedder());
+	if (!window) { // Not embedded.
+		window = gui.tooltip_popup->get_parent_visible_window();
+	}
+	float win_scale = window->content_scale_factor;
 	Point2 tooltip_offset = GLOBAL_GET("display/mouse_cursor/tooltip_position_offset");
+	if (!gui.tooltip_popup->is_embedded()) {
+		tooltip_offset *= win_scale;
+	}
 	Rect2 r(gui.tooltip_pos + tooltip_offset, gui.tooltip_popup->get_contents_minimum_size());
-	r.size = r.size.min(panel->get_max_size());
-
-	Window *window = gui.tooltip_popup->get_parent_visible_window();
 	Rect2i vr;
 	if (gui.tooltip_popup->is_embedded()) {
 		vr = gui.tooltip_popup->get_embedder()->get_visible_rect();
 	} else {
+		panel->content_scale_factor = win_scale;
+		r.size *= win_scale;
 		vr = window->get_usable_parent_rect();
 	}
+	r.size = r.size.min(panel->get_max_size());
 
 	if (r.size.x + r.position.x > vr.size.x + vr.position.x) {
 		// Place it in the opposite direction. If it fails, just hug the border.
@@ -3568,6 +3579,13 @@ bool Viewport::gui_is_drag_successful() const {
 	return gui.drag_successful;
 }
 
+void Viewport::gui_cancel_drag() {
+	ERR_MAIN_THREAD_GUARD;
+	if (gui_is_dragging()) {
+		_perform_drop();
+	}
+}
+
 void Viewport::set_input_as_handled() {
 	ERR_MAIN_THREAD_GUARD;
 	if (!handle_input_locally) {
@@ -4944,7 +4962,7 @@ Viewport::Viewport() {
 	unhandled_key_input_group = "_vp_unhandled_key_input" + id;
 
 	// Window tooltip.
-	gui.tooltip_delay = GLOBAL_DEF(PropertyInfo(Variant::FLOAT, "gui/timers/tooltip_delay_sec", PROPERTY_HINT_RANGE, "0,5,0.01,or_greater"), 0.5);
+	gui.tooltip_delay = GLOBAL_GET("gui/timers/tooltip_delay_sec");
 
 #ifndef _3D_DISABLED
 	set_scaling_3d_mode((Viewport::Scaling3DMode)(int)GLOBAL_GET("rendering/scaling_3d/mode"));

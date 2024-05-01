@@ -69,15 +69,17 @@
 #include "servers/display_server.h"
 #include "servers/movie_writer/movie_writer.h"
 #include "servers/movie_writer/movie_writer_mjpeg.h"
-#include "servers/navigation_server_2d.h"
-#include "servers/navigation_server_2d_dummy.h"
 #include "servers/navigation_server_3d.h"
 #include "servers/navigation_server_3d_dummy.h"
-#include "servers/physics_server_2d.h"
 #include "servers/register_server_types.h"
 #include "servers/rendering/rendering_server_default.h"
 #include "servers/text/text_server_dummy.h"
 #include "servers/text_server.h"
+
+// 2D
+#include "servers/navigation_server_2d.h"
+#include "servers/navigation_server_2d_dummy.h"
+#include "servers/physics_server_2d.h"
 
 #ifndef _3D_DISABLED
 #include "servers/physics_server_3d.h"
@@ -92,6 +94,7 @@
 #include "editor/debugger/editor_debugger_node.h"
 #include "editor/doc_data_class_path.gen.h"
 #include "editor/doc_tools.h"
+#include "editor/editor_file_system.h"
 #include "editor/editor_help.h"
 #include "editor/editor_node.h"
 #include "editor/editor_paths.h"
@@ -142,15 +145,15 @@ static MessageQueue *message_queue = nullptr;
 
 // Initialized in setup2()
 static AudioServer *audio_server = nullptr;
+static CameraServer *camera_server = nullptr;
 static DisplayServer *display_server = nullptr;
 static RenderingServer *rendering_server = nullptr;
-static CameraServer *camera_server = nullptr;
 static TextServerManager *tsman = nullptr;
+static ThemeDB *theme_db = nullptr;
+static NavigationServer2D *navigation_server_2d = nullptr;
 static PhysicsServer2DManager *physics_server_2d_manager = nullptr;
 static PhysicsServer2D *physics_server_2d = nullptr;
 static NavigationServer3D *navigation_server_3d = nullptr;
-static NavigationServer2D *navigation_server_2d = nullptr;
-static ThemeDB *theme_db = nullptr;
 #ifndef _3D_DISABLED
 static PhysicsServer3DManager *physics_server_3d_manager = nullptr;
 static PhysicsServer3D *physics_server_3d = nullptr;
@@ -184,6 +187,7 @@ static OS::ProcessID editor_pid = 0;
 static bool found_project = false;
 static bool auto_build_solutions = false;
 static String debug_server_uri;
+static bool wait_for_import = false;
 #ifndef DISABLE_DEPRECATED
 static int converter_max_kb_file = 4 * 1024; // 4MB
 static int converter_max_line_length = 100000;
@@ -617,6 +621,7 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--main-loop <main_loop_name>", "Run a MainLoop specified by its global class name.\n");
 	print_help_option("--check-only", "Only parse for errors and quit (use with --script).\n");
 #ifdef TOOLS_ENABLED
+	print_help_option("--import", "Starts the editor, waits for any resources to be imported, and then quits.\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("--export-release <preset> <path>", "Export the project in release mode using the given preset and output path. The preset name should match one defined in \"export_presets.cfg\".\n", CLI_OPTION_AVAILABILITY_EDITOR);
 	print_help_option("", "<path> should be absolute or relative to the project directory, and include the filename for the binary (e.g. \"builds/game.exe\").\n");
 	print_help_option("", "The target directory must exist.\n");
@@ -692,7 +697,9 @@ Error Main::test_setup() {
 
 	/** INITIALIZE SERVERS **/
 	register_server_types();
+#ifndef _3D_DISABLED
 	XRServer::set_xr_mode(XRServer::XRMODE_OFF); // Skip in tests.
+#endif // _3D_DISABLED
 	initialize_modules(MODULE_INITIALIZATION_LEVEL_SERVERS);
 	GDExtensionManager::get_singleton()->initialize_extensions(GDExtension::INITIALIZATION_LEVEL_SERVERS);
 
@@ -838,21 +845,26 @@ void Main::test_cleanup() {
 #endif
 
 int Main::test_entrypoint(int argc, char *argv[], bool &tests_need_run) {
-#ifdef TESTS_ENABLED
 	for (int x = 0; x < argc; x++) {
 		if ((strncmp(argv[x], "--test", 6) == 0) && (strlen(argv[x]) == 6)) {
 			tests_need_run = true;
+#ifdef TESTS_ENABLED
 			// TODO: need to come up with different test contexts.
 			// Not every test requires high-level functionality like `ClassDB`.
 			test_setup();
 			int status = test_main(argc, argv);
 			test_cleanup();
 			return status;
+#else
+			ERR_PRINT(
+					"`--test` was specified on the command line, but this Godot binary was compiled without support for unit tests. Aborting.\n"
+					"To be able to run unit tests, use the `tests=yes` SCons option when compiling Godot.\n");
+			return EXIT_FAILURE;
+#endif
 		}
 	}
-#endif
 	tests_need_run = false;
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 /* Engine initialization
@@ -1425,12 +1437,17 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing file to load argument after --validate-extension-api, aborting.");
 				goto error;
 			}
-
+		} else if (I->get() == "--import") {
+			editor = true;
+			cmdline_tool = true;
+			wait_for_import = true;
+			quit_after = 1;
 		} else if (I->get() == "--export-release" || I->get() == "--export-debug" ||
 				I->get() == "--export-pack") { // Export project
 			// Actually handling is done in start().
 			editor = true;
 			cmdline_tool = true;
+			wait_for_import = true;
 			main_args.push_back(I->get());
 #ifndef DISABLE_DEPRECATED
 		} else if (I->get() == "--export") { // For users used to 3.x syntax.
@@ -1734,6 +1751,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 		}
 	}
 
+	OS::get_singleton()->_in_editor = editor;
 	if (globals->setup(project_path, main_pack, upwards, editor) == OK) {
 #ifdef TOOLS_ENABLED
 		found_project = true;
@@ -2271,6 +2289,9 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 			// Editor and project manager cannot run with rendering in a separate thread (they will crash on startup).
 			rtm = OS::RENDER_THREAD_SAFE;
 		}
+#if !defined(THREADS_ENABLED)
+		rtm = OS::RENDER_THREAD_SAFE;
+#endif
 		OS::get_singleton()->_render_thread_mode = OS::RenderThreadMode(rtm);
 	}
 
@@ -2326,9 +2347,12 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	Engine::get_singleton()->set_max_physics_steps_per_frame(GLOBAL_DEF_BASIC(PropertyInfo(Variant::INT, "physics/common/max_physics_steps_per_frame", PROPERTY_HINT_RANGE, "1,100,1"), 8));
 	Engine::get_singleton()->set_physics_jitter_fix(GLOBAL_DEF("physics/common/physics_jitter_fix", 0.5));
 	Engine::get_singleton()->set_max_fps(GLOBAL_DEF(PropertyInfo(Variant::INT, "application/run/max_fps", PROPERTY_HINT_RANGE, "0,1000,1"), 0));
-	Engine::get_singleton()->set_audio_output_latency(GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "audio/driver/output_latency", PROPERTY_HINT_RANGE, "1,100,1"), 15));
+
+	GLOBAL_DEF_RST(PropertyInfo(Variant::INT, "audio/driver/output_latency", PROPERTY_HINT_RANGE, "1,100,1"), 15);
 	// Use a safer default output_latency for web to avoid audio cracking on low-end devices, especially mobile.
 	GLOBAL_DEF_RST("audio/driver/output_latency.web", 50);
+
+	Engine::get_singleton()->set_audio_output_latency(GLOBAL_GET("audio/driver/output_latency"));
 
 	GLOBAL_DEF("debug/settings/stdout/print_fps", false);
 	GLOBAL_DEF("debug/settings/stdout/print_gpu_profile", false);
@@ -2507,12 +2531,10 @@ Error Main::setup2() {
 
 		// Editor setting class is not available, load config directly.
 		if (!init_use_custom_screen && (editor || project_manager) && EditorPaths::get_singleton()->are_paths_valid()) {
-			Ref<DirAccess> dir = DirAccess::open(EditorPaths::get_singleton()->get_config_dir());
-			ERR_FAIL_COND_V(dir.is_null(), FAILED);
+			ERR_FAIL_COND_V(!DirAccess::dir_exists_absolute(EditorPaths::get_singleton()->get_config_dir()), FAILED);
 
-			String config_file_name = "editor_settings-" + itos(VERSION_MAJOR) + ".tres";
-			String config_file_path = EditorPaths::get_singleton()->get_config_dir().path_join(config_file_name);
-			if (dir->file_exists(config_file_name)) {
+			String config_file_path = EditorSettings::get_existing_settings_path();
+			if (FileAccess::exists(config_file_path)) {
 				Error err;
 				Ref<FileAccess> f = FileAccess::open(config_file_path, FileAccess::READ, &err);
 				if (f.is_valid()) {
@@ -2718,7 +2740,9 @@ Error Main::setup2() {
 	}
 
 	if (OS::get_singleton()->_render_thread_mode == OS::RENDER_SEPARATE_THREAD) {
-		WARN_PRINT("The Multi-Threaded rendering thread model is experimental, and has known issues which can lead to project crashes. Use the Single-Safe option in the project settings instead.");
+		WARN_PRINT("The Multi-Threaded rendering thread model is experimental. Feel free to try it since it will eventually become a stable feature.\n"
+				   "However, bear in mind that at the moment it can lead to project crashes or instability.\n"
+				   "So, unless you want to test the engine, use the Single-Safe option in the project settings instead.");
 	}
 
 	/* Initialize Pen Tablet Driver */
@@ -4026,11 +4050,11 @@ bool Main::iteration() {
 		if ((!force_redraw_requested) && OS::get_singleton()->is_in_low_processor_usage_mode()) {
 			if (RenderingServer::get_singleton()->has_changed()) {
 				RenderingServer::get_singleton()->draw(true, scaled_step); // flush visual commands
-				Engine::get_singleton()->frames_drawn++;
+				Engine::get_singleton()->increment_frames_drawn();
 			}
 		} else {
 			RenderingServer::get_singleton()->draw(true, scaled_step); // flush visual commands
-			Engine::get_singleton()->frames_drawn++;
+			Engine::get_singleton()->increment_frames_drawn();
 			force_redraw_requested = false;
 		}
 	}
@@ -4092,6 +4116,12 @@ bool Main::iteration() {
 	if ((quit_after > 0) && (Engine::get_singleton()->_process_frames >= quit_after)) {
 		exit = true;
 	}
+
+#ifdef TOOLS_ENABLED
+	if (wait_for_import && EditorFileSystem::get_singleton()->doing_first_scan()) {
+		exit = false;
+	}
+#endif
 
 	if (fixed_fps != -1) {
 		return exit;

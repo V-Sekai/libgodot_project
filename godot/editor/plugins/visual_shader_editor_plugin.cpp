@@ -953,8 +953,8 @@ void VisualShaderGraphPlugin::add_node(VisualShader::Type p_type, int p_id, bool
 		bool port_left_used = false;
 		String name_left;
 		if (valid_left) {
-			name_left = vsnode->get_input_port_name(i);
-			port_left = vsnode->get_input_port_type(i);
+			name_left = vsnode->get_input_port_name(j);
+			port_left = vsnode->get_input_port_type(j);
 			for (const VisualShader::Connection &E : connections) {
 				if (E.to_node == p_id && E.to_port == j) {
 					port_left_used = true;
@@ -989,15 +989,15 @@ void VisualShaderGraphPlugin::add_node(VisualShader::Type p_type, int p_id, bool
 		Variant default_value;
 
 		if (valid_left && !port_left_used) {
-			default_value = vsnode->get_input_port_default_value(i);
+			default_value = vsnode->get_input_port_default_value(j);
 		}
 
 		Button *button = memnew(Button);
 		hb->add_child(button);
-		register_default_input_button(p_id, i, button);
-		button->connect("pressed", callable_mp(editor, &VisualShaderEditor::_edit_port_default_input).bind(button, p_id, i));
+		register_default_input_button(p_id, j, button);
+		button->connect("pressed", callable_mp(editor, &VisualShaderEditor::_edit_port_default_input).bind(button, p_id, j));
 		if (default_value.get_type() != Variant::NIL) { // only a label
-			set_input_port_default_value(p_type, p_id, i, default_value);
+			set_input_port_default_value(p_type, p_id, j, default_value);
 		} else {
 			button->hide();
 		}
@@ -7183,8 +7183,35 @@ public:
 		undo_redo->add_do_property(node.ptr(), p_property, p_value);
 		undo_redo->add_undo_property(node.ptr(), p_property, node->get(p_property));
 
+		Ref<VisualShaderNode> vsnode = editor->get_visual_shader()->get_node(shader_type, node_id);
+		ERR_FAIL_COND(vsnode.is_null());
+
+		// Check for invalid connections due to removed ports.
+		// We need to know the new state of the node to generate the proper undo/redo instructions.
+		// Quite hacky but the best way I could come up with for now.
+		Ref<VisualShaderNode> vsnode_new = vsnode->duplicate();
+		vsnode_new->set(p_property, p_value);
+		const int input_port_count = vsnode_new->get_input_port_count();
+		const int output_port_count = vsnode_new->get_output_port_count();
+
+		List<VisualShader::Connection> conns;
+		editor->get_visual_shader()->get_node_connections(shader_type, &conns);
+		VisualShaderGraphPlugin *graph_plugin = editor->get_graph_plugin();
+		bool undo_node_already_updated = false;
+		for (const VisualShader::Connection &c : conns) {
+			if ((c.from_node == node_id && c.from_port >= output_port_count) || (c.to_node == node_id && c.to_port >= input_port_count)) {
+				undo_redo->add_do_method(editor->get_visual_shader().ptr(), "disconnect_nodes", shader_type, c.from_node, c.from_port, c.to_node, c.to_port);
+				undo_redo->add_do_method(graph_plugin, "disconnect_nodes", shader_type, c.from_node, c.from_port, c.to_node, c.to_port);
+				// We need to update the node before reconnecting to avoid accessing a non-existing port.
+				undo_redo->add_undo_method(graph_plugin, "update_node_deferred", shader_type, node_id);
+				undo_node_already_updated = true;
+				undo_redo->add_undo_method(editor->get_visual_shader().ptr(), "connect_nodes", shader_type, c.from_node, c.from_port, c.to_node, c.to_port);
+				undo_redo->add_undo_method(graph_plugin, "connect_nodes", shader_type, c.from_node, c.from_port, c.to_node, c.to_port);
+			}
+		}
+
 		if (p_value.get_type() == Variant::OBJECT) {
-			Ref<Resource> prev_res = node->get(p_property);
+			Ref<Resource> prev_res = vsnode->get(p_property);
 			Ref<Resource> curr_res = p_value;
 
 			if (curr_res.is_null()) {
@@ -7199,14 +7226,16 @@ public:
 			}
 		}
 		if (p_property != "constant") {
-			VisualShaderGraphPlugin *graph_plugin = editor->get_graph_plugin();
 			if (graph_plugin) {
 				undo_redo->add_do_method(editor, "_update_next_previews", node_id);
 				undo_redo->add_undo_method(editor, "_update_next_previews", node_id);
 				undo_redo->add_do_method(graph_plugin, "update_node_deferred", shader_type, node_id);
-				undo_redo->add_undo_method(graph_plugin, "update_node_deferred", shader_type, node_id);
+				if (!undo_node_already_updated) {
+					undo_redo->add_undo_method(graph_plugin, "update_node_deferred", shader_type, node_id);
+				}
 			}
 		}
+
 		undo_redo->commit_action();
 
 		updating = false;

@@ -53,6 +53,7 @@
 #include "editor/plugins/gizmos/cpu_particles_3d_gizmo_plugin.h"
 #include "editor/plugins/gizmos/decal_gizmo_plugin.h"
 #include "editor/plugins/gizmos/fog_volume_gizmo_plugin.h"
+#include "editor/plugins/gizmos/geometry_instance_3d_gizmo_plugin.h"
 #include "editor/plugins/gizmos/gpu_particles_3d_gizmo_plugin.h"
 #include "editor/plugins/gizmos/gpu_particles_collision_3d_gizmo_plugin.h"
 #include "editor/plugins/gizmos/joint_3d_gizmo_plugin.h"
@@ -4507,7 +4508,7 @@ bool Node3DEditorViewport::can_drop_data_fw(const Point2 &p_point, const Variant
 							continue;
 						}
 						Node *edited_scene = EditorNode::get_singleton()->get_edited_scene();
-						if (_cyclical_dependency_exists(edited_scene->get_scene_file_path(), instantiated_scene)) {
+						if (edited_scene && !edited_scene->get_scene_file_path().is_empty() && _cyclical_dependency_exists(edited_scene->get_scene_file_path(), instantiated_scene)) {
 							memdelete(instantiated_scene);
 							can_instantiate = false;
 							is_cyclical_dep = true;
@@ -4519,7 +4520,7 @@ bool Node3DEditorViewport::can_drop_data_fw(const Point2 &p_point, const Variant
 						Ref<BaseMaterial3D> base_mat = res;
 						Ref<ShaderMaterial> shader_mat = res;
 
-						if (base_mat.is_null() && !shader_mat.is_null()) {
+						if (base_mat.is_null() && shader_mat.is_null()) {
 							continue;
 						}
 
@@ -6639,8 +6640,13 @@ void fragment() {
 
 			for (int j = 0; j < 4; j++) {
 				Transform3D t = Transform3D();
-				t = t.scaled(axis * distances[j + 1]);
-				t = t.translated(axis * distances[j]);
+				if (distances[j] > 0.0) {
+					t = t.scaled(axis * distances[j + 1]);
+					t = t.translated(axis * distances[j]);
+				} else {
+					t = t.scaled(axis * distances[j]);
+					t = t.translated(axis * distances[j + 1]);
+				}
 				RenderingServer::get_singleton()->multimesh_instance_set_transform(origin_multimesh, i * 4 + j, t);
 				RenderingServer::get_singleton()->multimesh_instance_set_color(origin_multimesh, i * 4 + j, origin_color);
 			}
@@ -8091,6 +8097,7 @@ void Node3DEditor::_register_all_gizmos() {
 	add_gizmo_plugin(Ref<SoftBody3DGizmoPlugin>(memnew(SoftBody3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<SpriteBase3DGizmoPlugin>(memnew(SpriteBase3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<Label3DGizmoPlugin>(memnew(Label3DGizmoPlugin)));
+	add_gizmo_plugin(Ref<GeometryInstance3DGizmoPlugin>(memnew(GeometryInstance3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<Marker3DGizmoPlugin>(memnew(Marker3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<RayCast3DGizmoPlugin>(memnew(RayCast3DGizmoPlugin)));
 	add_gizmo_plugin(Ref<ShapeCast3DGizmoPlugin>(memnew(ShapeCast3DGizmoPlugin)));

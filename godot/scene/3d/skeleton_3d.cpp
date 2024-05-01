@@ -32,6 +32,7 @@
 #include "skeleton_3d.compat.inc"
 
 #include "core/variant/type_info.h"
+#include "scene/3d/skeleton_modifier_3d.h"
 #include "scene/resources/surface_tool.h"
 #include "scene/scene_string_names.h"
 #ifndef DISABLE_DEPRECATED
@@ -325,6 +326,8 @@ void Skeleton3D::_notification(int p_what) {
 				}
 				_process_modifiers();
 			}
+
+			emit_signal(SceneStringNames::get_singleton()->skeleton_updated);
 
 			// Update skins.
 			RenderingServer *rs = RenderingServer::get_singleton();
@@ -920,8 +923,6 @@ void Skeleton3D::force_update_bone_children_transforms(int p_bone_idx) {
 		for (int i = 0; i < child_bone_size; i++) {
 			bones_to_process.push_back(b.child_bones[i]);
 		}
-
-		emit_signal(SceneStringNames::get_singleton()->bone_pose_changed, current_bone_idx);
 	}
 }
 
@@ -1058,7 +1059,7 @@ void Skeleton3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "modifier_callback_mode_process", PROPERTY_HINT_ENUM, "Physics,Idle"), "set_modifier_callback_mode_process", "get_modifier_callback_mode_process");
 
 	ADD_SIGNAL(MethodInfo("pose_updated"));
-	ADD_SIGNAL(MethodInfo("bone_pose_changed", PropertyInfo(Variant::INT, "bone_idx")));
+	ADD_SIGNAL(MethodInfo("skeleton_updated"));
 	ADD_SIGNAL(MethodInfo("bone_enabled_changed", PropertyInfo(Variant::INT, "bone_idx")));
 	ADD_SIGNAL(MethodInfo("bone_list_changed"));
 	ADD_SIGNAL(MethodInfo("show_rest_only_changed"));

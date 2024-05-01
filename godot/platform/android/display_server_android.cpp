@@ -36,6 +36,7 @@
 #include "tts_android.h"
 
 #include "core/config/project_settings.h"
+#include "platform/android/rendering_native_surface_android.h"
 
 #if defined(RD_ENABLED)
 #include "servers/rendering/renderer_rd/renderer_compositor_rd.h"
@@ -322,7 +323,7 @@ void DisplayServerAndroid::window_set_drop_files_callback(const Callable &p_call
 }
 
 void DisplayServerAndroid::_window_callback(const Callable &p_callable, const Variant &p_arg, bool p_deferred) const {
-	if (!p_callable.is_null()) {
+	if (p_callable.is_valid()) {
 		if (p_deferred) {
 			p_callable.call_deferred(p_arg);
 		} else {

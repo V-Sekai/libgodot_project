@@ -4270,7 +4270,7 @@ bool DisplayServerX11::_window_focus_check() {
 }
 
 void DisplayServerX11::process_events() {
-	_THREAD_SAFE_METHOD_
+	_THREAD_SAFE_LOCK_
 
 #ifdef DISPLAY_SERVER_X11_DEBUG_LOGS_ENABLED
 	static int frame = 0;
@@ -4994,7 +4994,7 @@ void DisplayServerX11::process_events() {
 						files.write[i] = files[i].replace("file://", "").uri_decode();
 					}
 
-					if (!windows[window_id].drop_files_callback.is_null()) {
+					if (windows[window_id].drop_files_callback.is_valid()) {
 						windows[window_id].drop_files_callback.call(files);
 					}
 
@@ -5099,6 +5099,14 @@ void DisplayServerX11::process_events() {
 		*/
 	}
 
+#ifdef DBUS_ENABLED
+	if (portal_desktop) {
+		portal_desktop->process_file_dialog_callbacks();
+	}
+#endif
+
+	_THREAD_SAFE_UNLOCK_
+
 	Input::get_singleton()->flush_buffered_events();
 }
 
@@ -5109,17 +5117,6 @@ void DisplayServerX11::release_rendering_thread() {
 	}
 	if (gl_manager_egl) {
 		gl_manager_egl->release_current();
-	}
-#endif
-}
-
-void DisplayServerX11::make_rendering_thread() {
-#if defined(GLES3_ENABLED)
-	if (gl_manager) {
-		gl_manager->make_current();
-	}
-	if (gl_manager_egl) {
-		gl_manager_egl->make_current();
 	}
 #endif
 }

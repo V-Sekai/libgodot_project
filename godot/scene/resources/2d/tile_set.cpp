@@ -5591,6 +5591,11 @@ Ref<ImageTexture> TileSetAtlasSource::_create_padded_image_texture(const Ref<Tex
 		ret.instantiate();
 		return ret;
 	}
+	if (src_image->is_compressed()) {
+		src_image = src_image->duplicate();
+		Error err = src_image->decompress();
+		ERR_FAIL_COND_V_MSG(err != OK, Ref<ImageTexture>(), "Unable to decompress image.");
+	}
 
 	Size2 size = get_atlas_grid_size() * (texture_region_size + Vector2i(2, 2));
 	Ref<Image> image = Image::create_empty(size.x, size.y, false, src_image->get_format());
@@ -6805,8 +6810,20 @@ void TileData::_get_property_list(List<PropertyInfo> *p_list) const {
 		// Physics layers.
 		p_list->push_back(PropertyInfo(Variant::NIL, GNAME("Physics", ""), PROPERTY_HINT_NONE, "", PROPERTY_USAGE_GROUP));
 		for (int i = 0; i < physics.size(); i++) {
-			p_list->push_back(PropertyInfo(Variant::VECTOR2, vformat("physics_layer_%d/%s", i, PNAME("linear_velocity")), PROPERTY_HINT_NONE));
-			p_list->push_back(PropertyInfo(Variant::FLOAT, vformat("physics_layer_%d/%s", i, PNAME("angular_velocity")), PROPERTY_HINT_NONE));
+			// physics_layer_%d/linear_velocity
+			property_info = PropertyInfo(Variant::VECTOR2, vformat("physics_layer_%d/%s", i, PNAME("linear_velocity")), PROPERTY_HINT_NONE);
+			if (physics[i].linear_velocity == Vector2()) {
+				property_info.usage ^= PROPERTY_USAGE_STORAGE;
+			}
+			p_list->push_back(property_info);
+
+			// physics_layer_%d/angular_velocity
+			property_info = PropertyInfo(Variant::FLOAT, vformat("physics_layer_%d/%s", i, PNAME("angular_velocity")), PROPERTY_HINT_NONE);
+			if (physics[i].angular_velocity == 0.0) {
+				property_info.usage ^= PROPERTY_USAGE_STORAGE;
+			}
+			p_list->push_back(property_info);
+
 			p_list->push_back(PropertyInfo(Variant::INT, vformat("physics_layer_%d/%s", i, PNAME("polygons_count")), PROPERTY_HINT_NONE, "", PROPERTY_USAGE_EDITOR));
 
 			for (int j = 0; j < physics[i].polygons.size(); j++) {

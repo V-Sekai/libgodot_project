@@ -170,6 +170,7 @@ void EditorExportPlatformWeb::_fix_html(Vector<uint8_t> &p_html, const Ref<Edito
 	replaces["$GODOT_PROJECT_NAME"] = GLOBAL_GET("application/config/name");
 	replaces["$GODOT_HEAD_INCLUDE"] = head_include + custom_head_include;
 	replaces["$GODOT_CONFIG"] = str_config;
+	replaces["$GODOT_SPLASH"] = p_name + ".png";
 
 	if (p_preset->get("variant/thread_support")) {
 		replaces["$GODOT_THREADS_ENABLED"] = "true";
@@ -479,7 +480,7 @@ Error EditorExportPlatformWeb::export_project(const Ref<EditorExportPreset> &p_p
 	// Export pck and shared objects
 	Vector<SharedObject> shared_objects;
 	String pck_path = base_path + ".pck";
-	Error error = save_pack(true, p_preset, p_debug, pck_path, &shared_objects);
+	Error error = save_pack(p_preset, p_debug, pck_path, &shared_objects);
 	if (error != OK) {
 		add_message(EXPORT_MESSAGE_ERROR, TTR("Export"), vformat(TTR("Could not write file: \"%s\"."), pck_path));
 		return error;
