@@ -52,7 +52,7 @@
 
 #include <wrl/client.h>
 
-#if defined(_MSC_VER) && defined(MemoryBarrier) && !defined(__MINGW32__)
+#if defined(_MSC_VER) && defined(MemoryBarrier)
 // Annoying define from winnt.h. Reintroduced by some of the headers above.
 #undef MemoryBarrier
 #endif
