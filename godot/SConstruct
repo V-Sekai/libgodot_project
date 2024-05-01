@@ -321,9 +321,11 @@ elif env["library_type"] == "shared_library":
 else:
     env.__class__.add_program = methods.add_program
 
-if env["platform"] != "":
+if env.scons_version < (4, 3) and not selected_platform:
+    selected_platform = env["p"]
+
+if env["platform"] == "":
     selected_platform = env["platform"]
-else:
     # Missing `platform` argument, try to detect platform automatically
     if (
         sys.platform.startswith("linux")
