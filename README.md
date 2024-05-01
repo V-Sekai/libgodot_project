@@ -1,4 +1,4 @@
-Migeran LibGodot Project
+V-Sekai & Migeran LibGodot Project
 ------------------------
 
 ## Features
