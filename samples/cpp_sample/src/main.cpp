@@ -56,7 +56,7 @@ public:
         if (func_gdextension_create_godot_instance == nullptr) {
             fprintf(stderr, "Error acquiring function: %s\n", dlerror());
             dlclose(handle);
-            handle == nullptr;
+            handle = nullptr;
             return;
         }
     }

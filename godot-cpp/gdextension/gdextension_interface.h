@@ -256,6 +256,7 @@ typedef struct {
 
 typedef const GDExtensionPropertyInfo *(*GDExtensionClassGetPropertyList)(GDExtensionClassInstancePtr p_instance, uint32_t *r_count);
 typedef void (*GDExtensionClassFreePropertyList)(GDExtensionClassInstancePtr p_instance, const GDExtensionPropertyInfo *p_list);
+typedef void (*GDExtensionClassFreePropertyList2)(GDExtensionClassInstancePtr p_instance, const GDExtensionPropertyInfo *p_list, uint32_t p_count);
 typedef GDExtensionBool (*GDExtensionClassPropertyCanRevert)(GDExtensionClassInstancePtr p_instance, GDExtensionConstStringNamePtr p_name);
 typedef GDExtensionBool (*GDExtensionClassPropertyGetRevert)(GDExtensionClassInstancePtr p_instance, GDExtensionConstStringNamePtr p_name, GDExtensionVariantPtr r_ret);
 typedef GDExtensionBool (*GDExtensionClassValidateProperty)(GDExtensionClassInstancePtr p_instance, GDExtensionPropertyInfo *p_property);
@@ -333,7 +334,7 @@ typedef struct {
 	GDExtensionClassSet set_func;
 	GDExtensionClassGet get_func;
 	GDExtensionClassGetPropertyList get_property_list_func;
-	GDExtensionClassFreePropertyList free_property_list_func;
+	GDExtensionClassFreePropertyList2 free_property_list_func;
 	GDExtensionClassPropertyCanRevert property_can_revert_func;
 	GDExtensionClassPropertyGetRevert property_get_revert_func;
 	GDExtensionClassValidateProperty validate_property_func;
@@ -2356,6 +2357,9 @@ typedef void (*GDExtensionInterfaceObjectSetInstance)(GDExtensionObjectPtr p_o, 
  *
  * Gets the class name of an Object.
  *
+ * If the GDExtension wraps the Godot object in an abstraction specific to its class, this is the
+ * function that should be used to determine which wrapper to use.
+ *
  * @param p_object A pointer to the Object.
  * @param p_library A pointer the library received by the GDExtension's entry point function.
  * @param r_class_name A pointer to a String to receive the class name.
@@ -2630,7 +2634,7 @@ typedef void *(*GDExtensionInterfaceClassdbGetClassTag)(GDExtensionConstStringNa
 /**
  * @name classdb_register_extension_class
  * @since 4.1
- * @deprecated in Godot 4.2. Use `classdb_register_extension_class2` instead.
+ * @deprecated in Godot 4.2. Use `classdb_register_extension_class3` instead.
  *
  * Registers an extension class in the ClassDB.
  *
@@ -2646,6 +2650,7 @@ typedef void (*GDExtensionInterfaceClassdbRegisterExtensionClass)(GDExtensionCla
 /**
  * @name classdb_register_extension_class2
  * @since 4.2
+ * @deprecated in Godot 4.3. Use `classdb_register_extension_class3` instead.
  *
  * Registers an extension class in the ClassDB.
  *
@@ -2834,6 +2839,36 @@ typedef void (*GDExtensionInterfaceEditorAddPlugin)(GDExtensionConstStringNamePt
  * @param p_class_name A pointer to a StringName with the name of a class that was previously added as an editor plugin.
  */
 typedef void (*GDExtensionInterfaceEditorRemovePlugin)(GDExtensionConstStringNamePtr p_class_name);
+
+/**
+ * @name editor_help_load_xml_from_utf8_chars
+ * @since 4.3
+ *
+ * Loads new XML-formatted documentation data in the editor.
+ *
+ * The provided pointer can be immediately freed once the function returns.
+ *
+ * @param p_data A pointer to an UTF-8 encoded C string (null terminated).
+ */
+typedef void (*GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8Chars)(const char *p_data);
+
+/**
+ * @name editor_help_load_xml_from_utf8_chars_and_len
+ * @since 4.3
+ *
+ * Loads new XML-formatted documentation data in the editor.
+ *
+ * The provided pointer can be immediately freed once the function returns.
+ *
+ * @param p_data A pointer to an UTF-8 encoded C string.
+ * @param p_size The number of bytes (not code units).
+ */
+typedef void (*GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8CharsAndLen)(const char *p_data, GDExtensionInt p_size);
+
+typedef GDExtensionObjectPtr (*GDExtensionInterfaceCreateGodotInstance)(int p_argc, char *p_argv[], GDExtensionInitializationFunction p_init_func);
+typedef void (*GDExtensionInterfaceDestroyGodotInstance)(GDExtensionObjectPtr p_godot_instance);
+
+GDExtensionObjectPtr gdextension_create_godot_instance(int p_argc, char *p_argv[], GDExtensionInitializationFunction p_init_func);
 
 #ifdef __cplusplus
 }
