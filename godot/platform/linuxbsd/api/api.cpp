@@ -46,10 +46,10 @@
 void register_core_linuxbsd_api() {
 #ifdef LINUXBSD_ENABLED
 #ifdef WAYLAND_ENABLED
-	GDREGISTER_ABSTRACT_CLASS(RenderingNativeSurfaceWayland);
+	GDREGISTER_INTERNAL_CLASS(RenderingNativeSurfaceWayland);
 #endif
 #ifdef X11_ENABLED
-	GDREGISTER_ABSTRACT_CLASS(RenderingNativeSurfaceX11);
+	GDREGISTER_INTERNAL_CLASS(RenderingNativeSurfaceX11);
 #endif
 #endif
 }
