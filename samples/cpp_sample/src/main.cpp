@@ -71,7 +71,7 @@ public:
             fprintf(stderr, "Error opening libgodot: %s\n", dlerror());
             return;
         }
-        *(void**)(&func_gdextension_create_godot_instance) = dlsym(handle, "gdextension_create_godot_instance");
+        func_gdextension_create_godot_instance = reinterpret_cast<GDExtensionObjectPtr (*)(int, char *[], GDExtensionInitializationFunction)>(dlsym(handle, "gdextension_create_godot_instance"));
         if (func_gdextension_create_godot_instance == nullptr) {
             fprintf(stderr, "Error acquiring function: %s\n", dlerror());
             dlclose(handle);
