@@ -33,6 +33,7 @@ elif host_system == 'Windows':
     cpus = os.cpu_count()
     target_platform = "windows"
     host_arch = "x86_64"
+    lib_suffix = "dll"
 elif host_system == 'Darwin':
     host_platform = "macos"
     cpus = os.cpu_count()
