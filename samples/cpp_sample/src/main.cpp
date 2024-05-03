@@ -5,9 +5,16 @@
 
 #ifdef _WIN32
     #include <windows.h>
+    char* dlerror() {
+        static char buf[256];
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                      NULL, GetLastError(),
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      buf, sizeof(buf), NULL);
+        return buf;
+    }
     #define dlopen(x,y) LoadLibrary(x)
-    #define dlerror() GetLastError()
-    #define dlsym(x,y) GetProcAddress((HMODULE)x,y)
+    #define dlsym(x,y) reinterpret_cast<GDExtensionObjectPtr (*)(int, char *[], GDExtensionInitializationFunction)>(GetProcAddress((HMODULE)x,y))
     #define dlclose(x) FreeLibrary((HMODULE)x)
 #else
     #include <dlfcn.h>
