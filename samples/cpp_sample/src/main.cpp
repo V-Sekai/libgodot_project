@@ -1,8 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <dlfcn.h>
 #include <string>
 #include <vector>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #define dlopen(x,y) LoadLibrary(x)
+    #define dlerror() GetLastError()
+    #define dlsym(x,y) GetProcAddress((HMODULE)x,y)
+    #define dlclose(x) FreeLibrary((HMODULE)x)
+#else
+    #include <dlfcn.h>
+#endif
 
 #include <gdextension_interface.h>
 
@@ -10,11 +19,14 @@
 #include <godot_cpp/godot.hpp>
 #include <godot_cpp/classes/godot_instance.hpp>
 
-
+#ifdef _WIN32
+#define LIBGODOT_LIBRARY_NAME "libgodot.dll"
+#else
 #ifdef __APPLE__
 #define LIBGODOT_LIBRARY_NAME "libgodot.dylib"
 #else
 #define LIBGODOT_LIBRARY_NAME "./libgodot.so"
+#endif
 #endif
 
 extern "C" {
