@@ -94,17 +94,15 @@ if not os.access(host_godot, os.X_OK) or force_host_rebuild == 1:
 os.makedirs(BUILD_DIR, exist_ok=True)
 
 if not os.path.isfile(os.path.join(BUILD_DIR, "extension_api.json")) or force_regenerate == 1:
-    os.chdir(BUILD_DIR)
-    subprocess.run([host_godot, "--dump-extension-api"])
+    subprocess.run([host_godot, "--dump-extension-api"], cwd=BUILD_DIR)
 
-os.chdir(GODOT_DIR)
 subprocess.run(["scons", f"p={target_platform}", f"target={target}", target_build_options, "library_type=shared_library"], cwd=GODOT_DIR)
-subprocess.run(["cp", "-v", target_godot, os.path.join(BUILD_DIR, f"libgodot.{lib_suffix}")])
+subprocess.run(["cp", "-v", target_godot, os.path.join(BUILD_DIR, f"libgodot.{lib_suffix}")], cwd=GODOT_DIR)
 
-subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(GODOT_CPP_DIR, "gdextension")])
-subprocess.run(["cp", "-v", os.path.join(GODOT_DIR, "core", "extension", "gdextension_interface.h"), os.path.join(GODOT_CPP_DIR, "gdextension")])
+subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
+subprocess.run(["cp", "-v", os.path.join(GODOT_DIR, "core", "extension", "gdextension_interface.h"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
 
 if target_platform == "ios":
-    subprocess.run([os.path.join(SWIFT_GODOT_DIR, "scripts", "make-libgodot.framework"), GODOT_DIR, BUILD_DIR])
-    subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(SWIFT_GODOT_DIR, "Sources", "ExtensionApi")])
-    subprocess.run(["cp", "-v", os.path.join(GODOT_DIR, "core", "extension", "gdextension_interface.h"), os.path.join(SWIFT_GODOT_DIR, "Sources", "GDExtension", "include")])
+    subprocess.run([os.path.join(SWIFT_GODOT_DIR, "scripts", "make-libgodot.framework"), GODOT_DIR, BUILD_DIR], cwd=GODOT_DIR)
+    subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(SWIFT_GODOT_DIR, "Sources", "ExtensionApi")], cwd=GODOT_DIR)
+    subprocess.run(["cp", "-v", os.path.join(GODOT_DIR, "core", "extension", "gdextension_interface.h"), os.path.join(SWIFT_GODOT_DIR, "Sources", "GDExtension", "include")], cwd=GODOT_DIR)
