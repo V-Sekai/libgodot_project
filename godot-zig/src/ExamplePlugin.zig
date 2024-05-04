@@ -63,12 +63,9 @@ pub fn main() void {
         return;
     };
 
-    const create_godot_instance = @as(*const fn(c_int, [*c]u8, *const fn (c_int, [*c]u8, [*c]u8) callconv(.C) c_int) callconv(.C) c_int, @alignCast(@ptrCast(symbol)));
+    const create_godot_instance = @as(*const fn(c_int, [*c]u8, *const fn (c_int, [*c]u8, [*c]u8) callconv(.C) c_int) callconv(.C) GDE.GDExtensionObjectPtr, @alignCast(@ptrCast(symbol)));
         
-    var arg: [6]u8 = [_]u8{'e', ' ', '-', 'h', '\x00', 0};
+    var arg: [1]u8 = [_]u8{0};
     const myFunctionPtr = @as(*fn(c_int, [*c]u8, [*c]u8) callconv(.C) c_int, @constCast(@ptrCast(&my_extension_init)));
-    const result = create_godot_instance(1, &arg, myFunctionPtr);
-    if (result != 0) {
-        std.log.warn("Failed to create godot instance with error code: {}\n", .{result});
-    }
+    _ = create_godot_instance(0, &arg, myFunctionPtr);
 }
