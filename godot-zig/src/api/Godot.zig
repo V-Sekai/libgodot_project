@@ -208,10 +208,10 @@ pub fn registerClass(comptime T: type) void {
                 return null;
             }
         }
-        pub fn free_property_list_bind(p_instance: GDE.GDExtensionClassInstancePtr, p_list: [*c]const GDE.GDExtensionPropertyInfo) callconv(.C) void {
+        pub fn free_property_list_bind(p_instance: GDE.GDExtensionClassInstancePtr, p_list: [*c]const GDE.GDExtensionPropertyInfo, p_count: u32) callconv(.C) void {
             if (@hasDecl(T, "_free_property_list")) {
                 if (p_instance) |p| {
-                    T._free_property_list(@ptrCast(@alignCast(p)), p_list); //fn _free_property_list(self:*Self, p_list:[*c]const GDE.GDExtensionPropertyInfo) void {}
+                    T._free_property_list(@ptrCast(@alignCast(p)), p_list, p_count); //fn _free_property_list(self:*Self, p_list:[*c]const GDE.GDExtensionPropertyInfo, p_count: u32) void {}
                 }
             }
             if (p_list) |list| {

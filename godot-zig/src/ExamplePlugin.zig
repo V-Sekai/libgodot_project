@@ -45,3 +45,30 @@ pub export fn my_extension_init(p_get_proc_address: GDE.GDExtensionInterfaceGetP
 
     return 1;
 }
+
+const c = @cImport({
+    @cInclude("dlfcn.h");
+});
+
+pub fn main() void {
+    const lib_path: []const u8 = "libgodot.dylib";
+    const lib = c.dlopen(lib_path.ptr, c.RTLD_LAZY) orelse {
+        std.log.warn("Failed to open {s}\n", .{lib_path});
+        return;
+    };
+    defer _ = c.dlclose(lib);
+
+    const symbol = c.dlsym(lib, "gdextension_create_godot_instance") orelse {
+        std.log.warn("Failed to find symbol 'gdextension_create_godot_instance'\n", .{});
+        return;
+    };
+
+    const create_godot_instance = @as(*const fn(c_int, [*c]u8, *const fn (c_int, [*c]u8, [*c]u8) callconv(.C) c_int) callconv(.C) c_int, @alignCast(@ptrCast(symbol)));
+        
+    var arg: [6]u8 = [_]u8{'e', ' ', '-', 'h', '\x00', 0};
+    const myFunctionPtr = @as(*fn(c_int, [*c]u8, [*c]u8) callconv(.C) c_int, @constCast(@ptrCast(&my_extension_init)));
+    const result = create_godot_instance(1, &arg, myFunctionPtr);
+    if (result != 0) {
+        std.log.warn("Failed to create godot instance with error code: {}\n", .{result});
+    }
+}

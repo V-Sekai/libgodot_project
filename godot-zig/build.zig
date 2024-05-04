@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
     module.addIncludePath(b.path(api_path));
 
     // Example project
-    const lib = b.addSharedLibrary(.{
+    const lib = b.addExecutable(.{
         .name = "example",
         .root_source_file = .{ .path = "src/ExamplePlugin.zig" },
         .target = target,
@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
         godot_path, "--path", "./project",
     });
     run_cmd.step.dependOn(b.getInstallStep());
-    const run_step = b.step("run", "Run with Godot");
+    const run_step = b.step("lib", "Run with Godot");
     run_step.dependOn(&run_cmd.step);
 }
 
