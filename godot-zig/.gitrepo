@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/godot-zig/godot-zig.git
+	branch = master
+	commit = 2959af03e8028d5c2a7c101093ce8322998f5f04
+	parent = 5a254b9b060fd3eea1627e3a8e512f0b03131cf3
+	method = merge
+	cmdver = 0.4.6
