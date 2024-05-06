@@ -50,9 +50,10 @@ const c = @cImport({
     @cInclude("dlfcn.h");
 });
 
-pub fn main() void {
-    const lib_path: []const u8 = "libgodot.dylib";
-    const lib = c.dlopen(lib_path.ptr, c.RTLD_LAZY) orelse {
+pub fn main() !void {
+    const lib_path: [*:0]const u8 = "libgodot.dylib";
+    const RTLD_LAZY = 1;
+    const lib = c.dlopen(lib_path, RTLD_LAZY) orelse {
         std.log.warn("Failed to open {s}\n", .{lib_path});
         return;
     };
@@ -63,9 +64,13 @@ pub fn main() void {
         return;
     };
 
-    const create_godot_instance = @as(*const fn(c_int, [*c]u8, *const fn (c_int, [*c]u8, [*c]u8) callconv(.C) c_int) callconv(.C) GDE.GDExtensionObjectPtr, @alignCast(@ptrCast(symbol)));
-        
-    var arg: [1]u8 = [_]u8{0};
-    const myFunctionPtr = @as(*fn(c_int, [*c]u8, [*c]u8) callconv(.C) c_int, @constCast(@ptrCast(&my_extension_init)));
-    _ = create_godot_instance(0, &arg, myFunctionPtr);
+    const ArgvType = [*:null]const ?[*:0]const u8;
+    const InitFuncType = *const fn (GDE.GDExtensionInterfaceGetProcAddress, GDE.GDExtensionClassLibraryPtr, [*c]GDE.GDExtensionInitialization) callconv(.C) GDE.GDExtensionBool;
+    const argv: ArgvType = &.{ "", "--path", "./project" };
+    const create_godot_instance = @as(*const fn (c_int, ArgvType, InitFuncType) GDE.GDExtensionObjectPtr, @alignCast(@ptrCast(symbol)));
+    const inst = create_godot_instance(3, argv, &my_extension_init);
+    const gi: *Godot.GodotInstance = @ptrCast(@alignCast(Godot.getObjectInstanceBinding(inst)));
+    _ = gi.start();
+    while (!gi.iteration()) {}
+    gi.shutdown();
 }
