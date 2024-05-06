@@ -66,9 +66,9 @@ pub fn main() !void {
 
     const ArgvType = [*:null]const ?[*:0]const u8;
     const InitFuncType = *const fn (GDE.GDExtensionInterfaceGetProcAddress, GDE.GDExtensionClassLibraryPtr, [*c]GDE.GDExtensionInitialization) callconv(.C) GDE.GDExtensionBool;
-    const argv: ArgvType = &.{ "", "--path", "../../project" };
+    const argv: ArgvType = &.{ "", "--path", "../../project", "-e"};
     const create_godot_instance = @as(*const fn (c_int, ArgvType, InitFuncType) GDE.GDExtensionObjectPtr, @alignCast(@ptrCast(symbol)));
-    const inst = create_godot_instance(3, argv, &my_extension_init);
+    const inst = create_godot_instance(4, argv, &my_extension_init);
     const gi: *Godot.GodotInstance = @ptrCast(@alignCast(Godot.getObjectInstanceBinding(inst)));
     _ = gi.start();
     while (!gi.iteration()) {}
