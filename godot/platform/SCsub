@@ -66,7 +66,7 @@ def register_core_platform_apis_builder(target, source, env):
     for p in platforms:
         api_inc = f'#include "{p}/api/api.h"'
         api_reg = f"\tregister_core_{p}_api();"
-        api_unreg = f"\tunregister_{p}_api();"
+        api_unreg = f"\tunregister_core_{p}_api();"
         with methods.generated_wrapper(target) as file:
             file.write(
                 f"""\
