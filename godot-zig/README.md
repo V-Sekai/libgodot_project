@@ -1,12 +1,23 @@
 # godot-zig
+
 A WIP Zig bindings for Godot 4.  
 Features are being gradually added to meet the needs of a demo game.  
 Bugs and missing features are expected until a stable version finally released.  
-Issue report, feature request and pull request are all welcome.  
+Issue report, feature request and pull request are all welcome.
 
 ## Prerequisites:
+
 1. zig 0.12 or higher
 2. godot 4.2 or higher
+
+## Building notes for libgodot:
+
+```
+zig build -Dprecision=float -Dgodot=path_to_godot
+godot -e --path ./project                                 # only needed for the first run, to get assets imported
+zig build
+# Execute zig-out/bin/sample
+```
 
 ## Building:
 
@@ -16,8 +27,8 @@ godot -e --path ./project                                 # only needed for the 
 zig build run
 ```
 
-
 ## A GDExtension class example:
+
 ```
 const std = @import("std");
 const Godot = @import("godot");
@@ -66,9 +77,8 @@ pub fn onToggled(self: *Self, toggled_on: bool) void {
     std.debug.print("onToggled {any}\n", .{toggled_on});
 }
 ```
+
 <img width="960" alt="example screenshot1" src="https://github.com/godot-zig/godot-zig/assets/90960/55cddaf9-18a9-4f15-97e1-669d80e9c34f">
 <img width="960" alt="example screenshot2" src="https://github.com/godot-zig/godot-zig/assets/90960/aea7ab54-3e72-4d6b-b370-01862f9e91e0">
 
-
 ## Have fun!
-
