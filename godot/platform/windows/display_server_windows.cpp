@@ -2526,7 +2526,7 @@ Error DisplayServerWindows::dialog_show(String p_title, String p_description, Ve
 
 	Char16String title = p_title.utf16();
 	Char16String message = p_description.utf16();
-	List<Char16String> buttons;
+	LocalVector<Char16String> buttons;
 	for (String s : p_buttons) {
 		buttons.push_back(s.utf16());
 	}
@@ -2534,7 +2534,7 @@ Error DisplayServerWindows::dialog_show(String p_title, String p_description, Ve
 	config.pszWindowTitle = (LPCWSTR)(title.get_data());
 	config.pszContent = (LPCWSTR)(message.get_data());
 
-	const int button_count = MIN(buttons.size(), 8);
+	const int button_count = MIN((int)buttons.size(), 8);
 	config.cButtons = button_count;
 
 	// No dynamic stack array size :(
@@ -2963,30 +2963,28 @@ String DisplayServerWindows::keyboard_get_layout_name(int p_index) const {
 }
 
 void DisplayServerWindows::process_events() {
-	_THREAD_SAFE_LOCK_
-
-	MSG msg;
+	ERR_FAIL_COND(!Thread::is_main_thread());
 
 	if (!drop_events) {
 		joypad->process_joypads();
 	}
 
+	_THREAD_SAFE_LOCK_
+	MSG msg = {};
 	while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);
 	}
+	_THREAD_SAFE_UNLOCK_
 
 	if (!drop_events) {
 		_process_key_events();
-		_THREAD_SAFE_UNLOCK_
 		Input::get_singleton()->flush_buffered_events();
-	} else {
-		_THREAD_SAFE_UNLOCK_
 	}
 }
 
 void DisplayServerWindows::force_process_and_drop_events() {
-	_THREAD_SAFE_METHOD_
+	ERR_FAIL_COND(!Thread::is_main_thread());
 
 	drop_events = true;
 	process_events();
@@ -3765,8 +3763,13 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 			}
 		} break;
 		case WM_ACTIVATE: {
-			_process_activate_event(window_id, wParam, lParam);
-			return 0; // Return to the message loop.
+			// Activation can happen just after the window has been created, even before the callbacks are set.
+			// Therefore, it's safer to defer the delivery of the event.
+			if (!windows[window_id].activate_timer_id) {
+				windows[window_id].activate_timer_id = SetTimer(windows[window_id].hWnd, 1, USER_TIMER_MINIMUM, (TIMERPROC) nullptr);
+			}
+			windows[window_id].activate_state = GET_WM_ACTIVATE_STATE(wParam, lParam);
+			return 0;
 		} break;
 		case WM_GETMINMAXINFO: {
 			if (windows[window_id].resizable && !windows[window_id].fullscreen) {
@@ -3889,11 +3892,13 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 				return 0;
 			}
 		} break;
-		case WM_CLOSE: // Did we receive a close message?
-		{
+		case WM_CLOSE: {
+			if (windows[window_id].activate_timer_id) {
+				KillTimer(windows[window_id].hWnd, windows[window_id].activate_timer_id);
+				windows[window_id].activate_timer_id = 0;
+			}
 			_send_window_event(windows[window_id], WINDOW_EVENT_CLOSE_REQUEST);
-
-			return 0; // Jump back.
+			return 0;
 		}
 		case WM_MOUSELEAVE: {
 			if (window_mouseover_id == window_id) {
@@ -4658,10 +4663,16 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		} break;
 		case WM_TIMER: {
 			if (wParam == windows[window_id].move_timer_id) {
+				_THREAD_SAFE_UNLOCK_
 				_process_key_events();
 				if (!Main::is_iterating()) {
 					Main::iteration();
 				}
+				_THREAD_SAFE_LOCK_
+			} else if (wParam == windows[window_id].activate_timer_id) {
+				_process_activate_event(window_id);
+				KillTimer(windows[window_id].hWnd, windows[window_id].activate_timer_id);
+				windows[window_id].activate_timer_id = 0;
 			}
 		} break;
 		case WM_SYSKEYUP:
@@ -4865,31 +4876,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
-void DisplayServerWindows::_process_activate_event(WindowID p_window_id, WPARAM wParam, LPARAM lParam) {
-	if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE) {
+void DisplayServerWindows::_process_activate_event(WindowID p_window_id) {
+	WindowData &wd = windows[p_window_id];
+	if (wd.activate_state == WA_ACTIVE || wd.activate_state == WA_CLICKACTIVE) {
 		last_focused_window = p_window_id;
 		alt_mem = false;
 		control_mem = false;
 		shift_mem = false;
 		gr_mem = false;
 		_set_mouse_mode_impl(mouse_mode);
-		if (!IsIconic(windows[p_window_id].hWnd)) {
-			SetFocus(windows[p_window_id].hWnd);
+		if (!IsIconic(wd.hWnd)) {
+			SetFocus(wd.hWnd);
 		}
-		windows[p_window_id].window_focused = true;
-		_send_window_event(windows[p_window_id], WINDOW_EVENT_FOCUS_IN);
+		wd.window_focused = true;
+		_send_window_event(wd, WINDOW_EVENT_FOCUS_IN);
 	} else { // WM_INACTIVE.
 		Input::get_singleton()->release_pressed_events();
-		track_mouse_leave_event(windows[p_window_id].hWnd);
+		track_mouse_leave_event(wd.hWnd);
 		// Release capture unconditionally because it can be set due to dragging, in addition to captured mode.
 		ReleaseCapture();
 		alt_mem = false;
-		windows[p_window_id].window_focused = false;
-		_send_window_event(windows[p_window_id], WINDOW_EVENT_FOCUS_OUT);
+		wd.window_focused = false;
+		_send_window_event(wd, WINDOW_EVENT_FOCUS_OUT);
 	}
 
-	if ((tablet_get_current_driver() == "wintab") && wintab_available && windows[p_window_id].wtctx) {
-		wintab_WTEnable(windows[p_window_id].wtctx, GET_WM_ACTIVATE_STATE(wParam, lParam));
+	if ((tablet_get_current_driver() == "wintab") && wintab_available && wd.wtctx) {
+		wintab_WTEnable(wd.wtctx, wd.activate_state);
 	}
 }
 
