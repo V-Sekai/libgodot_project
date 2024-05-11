@@ -13,7 +13,7 @@ Issue report, feature request and pull request are all welcome.
 ## Building notes for libgodot:
 
 ```
-zig build -Dprecision=float -Dgodot=path_to_godot
+zig build -Dprecision=double -Dgodot=godot
 godot -e --path ./project                                 # only needed for the first run, to get assets imported
 zig build
 # Execute zig-out/bin/sample

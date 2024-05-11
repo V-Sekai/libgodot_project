@@ -1,3 +1,5 @@
 build/
 samples/project/.godot/
 .DS_Store
+
+godot-zig/project/.godot/
