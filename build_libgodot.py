@@ -119,6 +119,10 @@ subprocess.run(["cp", "-v", target_godot, os.path.join(BUILD_DIR, f"libgodot.{li
 subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
 subprocess.run(["cp", "-v", os.path.join(GODOT_DIR, "core", "extension", "gdextension_interface.h"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
 
+zig_out_bin = os.path.join("godot-zig", "zig-out", "bin")
+os.makedirs(zig_out_bin, exist_ok=True)
+subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, f"libgodot.{lib_suffix}"), os.path.join(BUILD_DIR, "..", zig_out_bin, f"libgodot.{lib_suffix}")], cwd=GODOT_DIR)
+
 if target_platform == "ios":
     subprocess.run([os.path.join(SWIFT_GODOT_DIR, "scripts", "make-libgodot.framework"), GODOT_DIR, BUILD_DIR], cwd=GODOT_DIR)
     subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(SWIFT_GODOT_DIR, "Sources", "ExtensionApi")], cwd=GODOT_DIR)
