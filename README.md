@@ -37,10 +37,10 @@ git clone https://github.com/V-Sekai/libgodot_project.git
 cd libgodot_project
 
 # Build for the host platform (Mac and Linux)
-./build_libgodot.sh
+python3 build_libgodot.py
 
 # Build for iOS (Mac only)
-./build_libgodot.sh --target ios 
+python3 build_libgodot.py --target ios 
 ```
 
 ### C++ Sample
