@@ -31,7 +31,6 @@
 #include "class_db.h"
 
 #include "core/config/engine.h"
-#include "core/core_string_names.h"
 #include "core/io/resource_loader.h"
 #include "core/object/script_language.h"
 #include "core/os/mutex.h"
@@ -506,7 +505,7 @@ Object *ClassDB::_instantiate_internal(const StringName &p_class, bool p_require
 		ERR_FAIL_NULL_V_MSG(ti->creation_func, nullptr, "Class '" + String(p_class) + "' or its base class cannot be instantiated.");
 	}
 #ifdef TOOLS_ENABLED
-	if (ti->api == API_EDITOR && !Engine::get_singleton()->is_editor_hint()) {
+	if ((ti->api == API_EDITOR || ti->api == API_EDITOR_EXTENSION) && !Engine::get_singleton()->is_editor_hint()) {
 		ERR_PRINT("Class '" + String(p_class) + "' can only be instantiated by editor.");
 		return nullptr;
 	}
@@ -523,7 +522,7 @@ Object *ClassDB::_instantiate_internal(const StringName &p_class, bool p_require
 #ifdef TOOLS_ENABLED
 		if (!p_require_real_class && ti->is_runtime && Engine::get_singleton()->is_editor_hint()) {
 			if (!ti->inherits_ptr || !ti->inherits_ptr->creation_func) {
-				ERR_PRINT_ONCE(vformat("Cannot make a placeholder instance of runtime class %s because its parent cannot be constructed.", ti->name));
+				ERR_PRINT(vformat("Cannot make a placeholder instance of runtime class %s because its parent cannot be constructed.", ti->name));
 			} else {
 				ObjectGDExtension *extension = get_placeholder_extension(ti->name);
 				return (Object *)extension->create_instance(extension->class_userdata);
@@ -665,7 +664,7 @@ bool ClassDB::can_instantiate(const StringName &p_class) {
 		return scr.is_valid() && scr->is_valid() && !scr->is_abstract();
 	}
 #ifdef TOOLS_ENABLED
-	if (ti->api == API_EDITOR && !Engine::get_singleton()->is_editor_hint()) {
+	if ((ti->api == API_EDITOR || ti->api == API_EDITOR_EXTENSION) && !Engine::get_singleton()->is_editor_hint()) {
 		return false;
 	}
 #endif
@@ -685,7 +684,7 @@ bool ClassDB::is_virtual(const StringName &p_class) {
 		return scr.is_valid() && scr->is_valid() && scr->is_abstract();
 	}
 #ifdef TOOLS_ENABLED
-	if (ti->api == API_EDITOR && !Engine::get_singleton()->is_editor_hint()) {
+	if ((ti->api == API_EDITOR || ti->api == API_EDITOR_EXTENSION) && !Engine::get_singleton()->is_editor_hint()) {
 		return false;
 	}
 #endif
@@ -1554,7 +1553,7 @@ bool ClassDB::get_property(Object *p_object, const StringName &p_property, Varia
 	}
 
 	// The "free()" method is special, so we assume it exists and return a Callable.
-	if (p_property == CoreStringNames::get_singleton()->_free) {
+	if (p_property == CoreStringName(free_)) {
 		r_value = Callable(p_object, p_property);
 		return true;
 	}

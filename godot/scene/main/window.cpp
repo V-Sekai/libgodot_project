@@ -37,7 +37,6 @@
 #include "core/string/translation.h"
 #include "core/variant/variant_parser.h"
 #include "scene/gui/control.h"
-#include "scene/scene_string_names.h"
 #include "scene/theme/theme_db.h"
 #include "scene/theme/theme_owner.h"
 
@@ -307,10 +306,21 @@ String Window::get_title() const {
 	return title;
 }
 
+void Window::_settings_changed() {
+	if (visible && initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE && is_in_edited_scene_root()) {
+		Size2 screen_size = Size2(GLOBAL_GET("display/window/size/viewport_width"), GLOBAL_GET("display/window/size/viewport_height"));
+		position = (screen_size - size) / 2;
+		if (embedder) {
+			embedder->_sub_window_update(this);
+		}
+	}
+}
+
 void Window::set_initial_position(Window::WindowInitialPosition p_initial_position) {
 	ERR_MAIN_THREAD_GUARD;
 
 	initial_position = p_initial_position;
+	_settings_changed();
 	notify_property_list_changed();
 }
 
@@ -381,6 +391,7 @@ void Window::set_size(const Size2i &p_size) {
 
 	size = p_size;
 	_update_window_size();
+	_settings_changed();
 }
 
 Size2i Window::get_size() const {
@@ -398,6 +409,16 @@ Point2i Window::get_position_with_decorations() const {
 	if (window_id != DisplayServer::INVALID_WINDOW_ID) {
 		return DisplayServer::get_singleton()->window_get_position_with_decorations(window_id);
 	}
+	if (visible && is_embedded() && !get_flag(Window::FLAG_BORDERLESS)) {
+		Size2 border_offset;
+		if (theme_cache.embedded_border.is_valid()) {
+			border_offset = theme_cache.embedded_border->get_offset();
+		}
+		if (theme_cache.embedded_unfocused_border.is_valid()) {
+			border_offset = border_offset.max(theme_cache.embedded_unfocused_border->get_offset());
+		}
+		return position - border_offset;
+	}
 	return position;
 }
 
@@ -405,6 +426,16 @@ Size2i Window::get_size_with_decorations() const {
 	ERR_READ_THREAD_GUARD_V(Size2i());
 	if (window_id != DisplayServer::INVALID_WINDOW_ID) {
 		return DisplayServer::get_singleton()->window_get_size_with_decorations(window_id);
+	}
+	if (visible && is_embedded() && !get_flag(Window::FLAG_BORDERLESS)) {
+		Size2 border_size;
+		if (theme_cache.embedded_border.is_valid()) {
+			border_size = theme_cache.embedded_border->get_minimum_size();
+		}
+		if (theme_cache.embedded_unfocused_border.is_valid()) {
+			border_size = border_size.max(theme_cache.embedded_unfocused_border->get_minimum_size());
+		}
+		return size + border_size;
 	}
 	return size;
 }
@@ -760,13 +791,13 @@ void Window::_event_callback(DisplayServer::WindowEvent p_event) {
 		case DisplayServer::WINDOW_EVENT_FOCUS_IN: {
 			focused = true;
 			_propagate_window_notification(this, NOTIFICATION_WM_WINDOW_FOCUS_IN);
-			emit_signal(SNAME("focus_entered"));
+			emit_signal(SceneStringName(focus_entered));
 
 		} break;
 		case DisplayServer::WINDOW_EVENT_FOCUS_OUT: {
 			focused = false;
 			_propagate_window_notification(this, NOTIFICATION_WM_WINDOW_FOCUS_OUT);
-			emit_signal(SNAME("focus_exited"));
+			emit_signal(SceneStringName(focus_exited));
 		} break;
 		case DisplayServer::WINDOW_EVENT_CLOSE_REQUEST: {
 			if (exclusive_child != nullptr) {
@@ -853,7 +884,12 @@ void Window::set_visible(bool p_visible) {
 		if (visible) {
 			embedder = embedder_vp;
 			if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
-				position = (embedder->get_visible_rect().size - size) / 2;
+				if (is_in_edited_scene_root()) {
+					Size2 screen_size = Size2(GLOBAL_GET("display/window/size/viewport_width"), GLOBAL_GET("display/window/size/viewport_height"));
+					position = (screen_size - size) / 2;
+				} else {
+					position = (embedder->get_visible_rect().size - size) / 2;
+				}
 			}
 			embedder->_sub_window_register(this);
 			RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
@@ -869,7 +905,7 @@ void Window::set_visible(bool p_visible) {
 		focused = false;
 	}
 	notification(NOTIFICATION_VISIBILITY_CHANGED);
-	emit_signal(SceneStringNames::get_singleton()->visibility_changed);
+	emit_signal(SceneStringName(visibility_changed));
 
 	RS::get_singleton()->viewport_set_active(get_viewport_rid(), visible);
 
@@ -1316,6 +1352,12 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
+			if (is_in_edited_scene_root()) {
+				if (!ProjectSettings::get_singleton()->is_connected("settings_changed", callable_mp(this, &Window::_settings_changed))) {
+					ProjectSettings::get_singleton()->connect("settings_changed", callable_mp(this, &Window::_settings_changed));
+				}
+			}
+
 			bool embedded = false;
 			{
 				embedder = get_embedder();
@@ -1331,7 +1373,12 @@ void Window::_notification(int p_what) {
 				// Create as embedded.
 				if (embedder) {
 					if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
-						position = (embedder->get_visible_rect().size - size) / 2;
+						if (is_in_edited_scene_root()) {
+							Size2 screen_size = Size2(GLOBAL_GET("display/window/size/viewport_width"), GLOBAL_GET("display/window/size/viewport_height"));
+							position = (screen_size - size) / 2;
+						} else {
+							position = (embedder->get_visible_rect().size - size) / 2;
+						}
 					}
 					embedder->_sub_window_register(this);
 					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
@@ -1371,7 +1418,7 @@ void Window::_notification(int p_what) {
 			}
 			if (visible) {
 				notification(NOTIFICATION_VISIBILITY_CHANGED);
-				emit_signal(SceneStringNames::get_singleton()->visibility_changed);
+				emit_signal(SceneStringName(visibility_changed));
 				RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
 			}
 
@@ -1387,7 +1434,7 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_THEME_CHANGED: {
-			emit_signal(SceneStringNames::get_singleton()->theme_changed);
+			emit_signal(SceneStringName(theme_changed));
 			_invalidate_theme_cache();
 			_update_theme_item_cache();
 		} break;
@@ -1428,6 +1475,10 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_EXIT_TREE: {
+			if (ProjectSettings::get_singleton()->is_connected("settings_changed", callable_mp(this, &Window::_settings_changed))) {
+				ProjectSettings::get_singleton()->disconnect("settings_changed", callable_mp(this, &Window::_settings_changed));
+			}
+
 			set_theme_context(nullptr, false);
 
 			if (transient) {
@@ -1454,11 +1505,11 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_VP_MOUSE_ENTER: {
-			emit_signal(SceneStringNames::get_singleton()->mouse_entered);
+			emit_signal(SceneStringName(mouse_entered));
 		} break;
 
 		case NOTIFICATION_VP_MOUSE_EXIT: {
-			emit_signal(SceneStringNames::get_singleton()->mouse_exited);
+			emit_signal(SceneStringName(mouse_exited));
 		} break;
 	}
 }
@@ -1672,7 +1723,7 @@ void Window::_window_input(const Ref<InputEvent> &p_ev) {
 	_input_from_window(p_ev);
 
 	if (p_ev->get_device() != InputEvent::DEVICE_ID_INTERNAL && is_inside_tree()) {
-		emit_signal(SceneStringNames::get_singleton()->window_input, p_ev);
+		emit_signal(SceneStringName(window_input), p_ev);
 	}
 
 	if (is_inside_tree()) {

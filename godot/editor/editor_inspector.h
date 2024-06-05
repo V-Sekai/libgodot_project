@@ -136,6 +136,8 @@ private:
 	void _update_pin_flags();
 
 protected:
+	bool has_borders = false;
+
 	void _notification(int p_what);
 	static void _bind_methods();
 	virtual void _set_read_only(bool p_read_only);
@@ -250,9 +252,13 @@ protected:
 	GDVIRTUAL7R(bool, _parse_property, Object *, Variant::Type, String, PropertyHint, String, BitField<PropertyUsageFlags>, bool)
 	GDVIRTUAL1(_parse_end, Object *)
 
+#ifndef DISABLE_DEPRECATED
+	void _add_property_editor_bind_compat_92322(const String &p_for_property, Control *p_prop, bool p_add_to_end);
+	static void _bind_compatibility_methods();
+#endif // DISABLE_DEPRECATED
 public:
 	void add_custom_control(Control *control);
-	void add_property_editor(const String &p_for_property, Control *p_prop, bool p_add_to_end = false);
+	void add_property_editor(const String &p_for_property, Control *p_prop, bool p_add_to_end = false, const String &p_label = String());
 	void add_property_editor_for_multiple_properties(const String &p_label, const Vector<String> &p_properties, Control *p_prop);
 
 	virtual bool can_handle(Object *p_object);
@@ -342,7 +348,7 @@ class EditorInspectorArray : public EditorInspectorSection {
 		MODE_NONE,
 		MODE_USE_COUNT_PROPERTY,
 		MODE_USE_MOVE_ARRAY_ELEMENT_FUNCTION,
-	} mode;
+	} mode = MODE_NONE;
 	StringName count_property;
 	StringName array_element_prefix;
 	String swap_method;
@@ -492,7 +498,8 @@ class EditorInspector : public ScrollContainer {
 	//
 
 	LineEdit *search_box = nullptr;
-	bool show_categories = false;
+	bool show_standard_categories = false;
+	bool show_custom_categories = false;
 	bool hide_script = true;
 	bool hide_metadata = true;
 	bool use_doc_hints = false;
@@ -608,7 +615,7 @@ public:
 
 	void set_autoclear(bool p_enable);
 
-	void set_show_categories(bool p_show);
+	void set_show_categories(bool p_show_standard, bool p_show_custom);
 	void set_use_doc_hints(bool p_enable);
 	void set_hide_script(bool p_hide);
 	void set_hide_metadata(bool p_hide);

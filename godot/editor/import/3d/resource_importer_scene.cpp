@@ -279,7 +279,7 @@ bool ResourceImporterScene::get_option_visibility(const String &p_path, const St
 		}
 	}
 
-	if (animation_importer && (p_option.begins_with("nodes/") || p_option.begins_with("meshes/") || p_option.begins_with("skins/"))) {
+	if (animation_importer && (p_option == "nodes/root_type" || p_option == "nodes/root_name" || p_option.begins_with("meshes/") || p_option.begins_with("skins/"))) {
 		return false; // Nothing to do here for animations.
 	}
 
@@ -326,8 +326,8 @@ void ResourceImporterScene::_pre_fix_global(Node *p_scene, const HashMap<StringN
 		Ref<Animation> reset_anim;
 		for (int i = 0; i < anim_players.size(); i++) {
 			AnimationPlayer *player = cast_to<AnimationPlayer>(anim_players[i]);
-			if (player->has_animation(SNAME("RESET"))) {
-				reset_anim = player->get_animation(SNAME("RESET"));
+			if (player->has_animation(SceneStringName(RESET))) {
+				reset_anim = player->get_animation(SceneStringName(RESET));
 				break;
 			}
 		}
@@ -341,7 +341,7 @@ void ResourceImporterScene::_pre_fix_global(Node *p_scene, const HashMap<StringN
 				anim_library.instantiate();
 				anim_player->add_animation_library(StringName(), anim_library);
 			}
-			anim_library->add_animation(SNAME("RESET"), reset_anim);
+			anim_library->add_animation(SceneStringName(RESET), reset_anim);
 		}
 		TypedArray<Node> skeletons = p_scene->find_children("*", "Skeleton3D");
 		for (int i = 0; i < skeletons.size(); i++) {
@@ -2329,6 +2329,7 @@ void ResourceImporterScene::get_import_options(const String &p_path, List<Import
 		}
 		script_ext_hint += "*." + E;
 	}
+	bool trimming_defaults_on = p_path.get_extension().to_lower() == "fbx";
 
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "nodes/apply_root_scale"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "nodes/root_scale", PROPERTY_HINT_RANGE, "0.001,1000,0.001"), 1.0));
@@ -2342,7 +2343,7 @@ void ResourceImporterScene::get_import_options(const String &p_path, List<Import
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "skins/use_named_skins"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/import"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::FLOAT, "animation/fps", PROPERTY_HINT_RANGE, "1,120,1"), 30));
-	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/trimming"), false));
+	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/trimming"), trimming_defaults_on));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/remove_immutable_tracks"), true));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::BOOL, "animation/import_rest_as_RESET"), false));
 	r_options->push_back(ImportOption(PropertyInfo(Variant::STRING, "import_script/path", PROPERTY_HINT_FILE, script_ext_hint), ""));

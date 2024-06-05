@@ -217,6 +217,8 @@ private:
 		int resize_margin = 0;
 	} theme_cache;
 
+	void _settings_changed();
+
 	Viewport *embedder = nullptr;
 
 	Transform2D window_transform;

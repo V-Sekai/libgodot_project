@@ -271,17 +271,17 @@ MeshLibraryEditor::MeshLibraryEditor() {
 	menu->get_popup()->add_item(TTR("Import from Scene (Apply Transforms)"), MENU_OPTION_IMPORT_FROM_SCENE_APPLY_XFORMS);
 	menu->get_popup()->add_item(TTR("Update from Scene"), MENU_OPTION_UPDATE_FROM_SCENE);
 	menu->get_popup()->set_item_disabled(menu->get_popup()->get_item_index(MENU_OPTION_UPDATE_FROM_SCENE), true);
-	menu->get_popup()->connect("id_pressed", callable_mp(this, &MeshLibraryEditor::_menu_cbk));
+	menu->get_popup()->connect(SceneStringName(id_pressed), callable_mp(this, &MeshLibraryEditor::_menu_cbk));
 	menu->hide();
 
 	cd_remove = memnew(ConfirmationDialog);
 	add_child(cd_remove);
-	cd_remove->get_ok_button()->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_remove_confirm));
+	cd_remove->get_ok_button()->connect(SceneStringName(pressed), callable_mp(this, &MeshLibraryEditor::_menu_remove_confirm));
 	cd_update = memnew(ConfirmationDialog);
 	add_child(cd_update);
 	cd_update->set_ok_button_text(TTR("Apply without Transforms"));
-	cd_update->get_ok_button()->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(false));
-	cd_update->add_button(TTR("Apply with Transforms"))->connect("pressed", callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(true));
+	cd_update->get_ok_button()->connect(SceneStringName(pressed), callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(false));
+	cd_update->add_button(TTR("Apply with Transforms"))->connect(SceneStringName(pressed), callable_mp(this, &MeshLibraryEditor::_menu_update_confirm).bind(true));
 }
 
 void MeshLibraryEditorPlugin::edit(Object *p_node) {

@@ -244,7 +244,7 @@ ReplicationEditor::ReplicationEditor() {
 	vb->add_child(hb);
 
 	add_pick_button = memnew(Button);
-	add_pick_button->connect("pressed", callable_mp(this, &ReplicationEditor::_pick_new_property));
+	add_pick_button->connect(SceneStringName(pressed), callable_mp(this, &ReplicationEditor::_pick_new_property));
 	add_pick_button->set_text(TTR("Add property to sync..."));
 	hb->add_child(add_pick_button);
 
@@ -260,7 +260,7 @@ ReplicationEditor::ReplicationEditor() {
 	hb->add_child(np_line_edit);
 
 	add_from_path_button = memnew(Button);
-	add_from_path_button->connect("pressed", callable_mp(this, &ReplicationEditor::_add_pressed));
+	add_from_path_button->connect(SceneStringName(pressed), callable_mp(this, &ReplicationEditor::_add_pressed));
 	add_from_path_button->set_text(TTR("Add from path"));
 	hb->add_child(add_from_path_button);
 
@@ -372,7 +372,7 @@ void ReplicationEditor::_notification(int p_what) {
 			[[fallthrough]];
 		}
 		case NOTIFICATION_ENTER_TREE: {
-			add_theme_style_override("panel", EditorNode::get_singleton()->get_editor_theme()->get_stylebox(SNAME("panel"), SNAME("Panel")));
+			add_theme_style_override(SceneStringName(panel), EditorNode::get_singleton()->get_editor_theme()->get_stylebox(SceneStringName(panel), SNAME("Panel")));
 			add_pick_button->set_icon(get_theme_icon(SNAME("Add"), EditorStringName(EditorIcons)));
 			pin->set_icon(get_theme_icon(SNAME("Pin"), EditorStringName(EditorIcons)));
 		} break;

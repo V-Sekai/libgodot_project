@@ -59,7 +59,7 @@ void EditorLog::_error_handler(void *p_self, const char *p_func, const char *p_f
 	MessageType message_type = p_type == ERR_HANDLER_WARNING ? MSG_TYPE_WARNING : MSG_TYPE_ERROR;
 
 	if (self->current != Thread::get_caller_id()) {
-		callable_mp(self, &EditorLog::add_message).bind(err_str, message_type).call_deferred();
+		callable_mp(self, &EditorLog::add_message).call_deferred(err_str, message_type);
 	} else {
 		self->add_message(err_str, message_type);
 	}
@@ -273,6 +273,10 @@ void EditorLog::_undo_redo_cbk(void *p_self, const String &p_name) {
 }
 
 void EditorLog::_rebuild_log() {
+	if (messages.is_empty()) {
+		return;
+	}
+
 	log->clear();
 
 	int line_count = 0;
@@ -483,7 +487,7 @@ EditorLog::EditorLog() {
 	clear_button->set_theme_type_variation("FlatButton");
 	clear_button->set_focus_mode(FOCUS_NONE);
 	clear_button->set_shortcut(ED_SHORTCUT("editor/clear_output", TTR("Clear Output"), KeyModifierMask::CMD_OR_CTRL | KeyModifierMask::ALT | Key::K));
-	clear_button->connect("pressed", callable_mp(this, &EditorLog::_clear_request));
+	clear_button->connect(SceneStringName(pressed), callable_mp(this, &EditorLog::_clear_request));
 	hb_tools->add_child(clear_button);
 
 	// Copy.
@@ -492,7 +496,7 @@ EditorLog::EditorLog() {
 	copy_button->set_focus_mode(FOCUS_NONE);
 	copy_button->set_shortcut(ED_SHORTCUT("editor/copy_output", TTR("Copy Selection"), KeyModifierMask::CMD_OR_CTRL | Key::C));
 	copy_button->set_shortcut_context(this);
-	copy_button->connect("pressed", callable_mp(this, &EditorLog::_copy_request));
+	copy_button->connect(SceneStringName(pressed), callable_mp(this, &EditorLog::_copy_request));
 	hb_tools->add_child(copy_button);
 
 	// Separate toggle buttons from normal buttons.

@@ -266,7 +266,7 @@ DependencyEditor::DependencyEditor() {
 	hbc->add_spacer();
 	fixdeps = memnew(Button(TTR("Fix Broken")));
 	hbc->add_child(fixdeps);
-	fixdeps->connect("pressed", callable_mp(this, &DependencyEditor::_fix_all));
+	fixdeps->connect(SceneStringName(pressed), callable_mp(this, &DependencyEditor::_fix_all));
 
 	vb->add_child(hbc);
 
@@ -396,7 +396,7 @@ void DependencyEditorOwners::show(const String &p_path) {
 DependencyEditorOwners::DependencyEditorOwners() {
 	file_options = memnew(PopupMenu);
 	add_child(file_options);
-	file_options->connect("id_pressed", callable_mp(this, &DependencyEditorOwners::_file_option));
+	file_options->connect(SceneStringName(id_pressed), callable_mp(this, &DependencyEditorOwners::_file_option));
 
 	owners = memnew(ItemList);
 	owners->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);

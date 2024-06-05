@@ -31,7 +31,6 @@
 #include "editor_properties.h"
 
 #include "core/config/project_settings.h"
-#include "core/core_string_names.h"
 #include "editor/create_dialog.h"
 #include "editor/editor_node.h"
 #include "editor/editor_properties_array_dict.h"
@@ -236,7 +235,7 @@ EditorPropertyMultilineText::EditorPropertyMultilineText(bool p_expression) {
 	text->set_h_size_flags(SIZE_EXPAND_FILL);
 	open_big_text = memnew(Button);
 	open_big_text->set_flat(true);
-	open_big_text->connect("pressed", callable_mp(this, &EditorPropertyMultilineText::_open_big_text));
+	open_big_text->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyMultilineText::_open_big_text));
 	hb->add_child(open_big_text);
 	big_text_dialog = nullptr;
 	big_text = nullptr;
@@ -383,7 +382,7 @@ EditorPropertyTextEnum::EditorPropertyTextEnum() {
 	edit_button->set_flat(true);
 	edit_button->hide();
 	default_layout->add_child(edit_button);
-	edit_button->connect("pressed", callable_mp(this, &EditorPropertyTextEnum::_edit_custom_value));
+	edit_button->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyTextEnum::_edit_custom_value));
 
 	custom_value_edit = memnew(LineEdit);
 	custom_value_edit->set_h_size_flags(SIZE_EXPAND_FILL);
@@ -393,12 +392,12 @@ EditorPropertyTextEnum::EditorPropertyTextEnum() {
 	accept_button = memnew(Button);
 	accept_button->set_flat(true);
 	edit_custom_layout->add_child(accept_button);
-	accept_button->connect("pressed", callable_mp(this, &EditorPropertyTextEnum::_custom_value_accepted));
+	accept_button->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyTextEnum::_custom_value_accepted));
 
 	cancel_button = memnew(Button);
 	cancel_button->set_flat(true);
 	edit_custom_layout->add_child(cancel_button);
-	cancel_button->connect("pressed", callable_mp(this, &EditorPropertyTextEnum::_custom_value_canceled));
+	cancel_button->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyTextEnum::_custom_value_canceled));
 
 	add_focusable(option_button);
 	add_focusable(edit_button);
@@ -457,7 +456,7 @@ EditorPropertyLocale::EditorPropertyLocale() {
 	locale = memnew(LineEdit);
 	locale_hb->add_child(locale);
 	locale->connect("text_submitted", callable_mp(this, &EditorPropertyLocale::_locale_selected));
-	locale->connect("focus_exited", callable_mp(this, &EditorPropertyLocale::_locale_focus_exited));
+	locale->connect(SceneStringName(focus_exited), callable_mp(this, &EditorPropertyLocale::_locale_focus_exited));
 	locale->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	locale_edit = memnew(Button);
@@ -465,7 +464,7 @@ EditorPropertyLocale::EditorPropertyLocale() {
 	locale_hb->add_child(locale_edit);
 	add_focusable(locale);
 	dialog = nullptr;
-	locale_edit->connect("pressed", callable_mp(this, &EditorPropertyLocale::_locale_pressed));
+	locale_edit->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyLocale::_locale_pressed));
 }
 
 ///////////////////// PATH /////////////////////////
@@ -598,7 +597,7 @@ EditorPropertyPath::EditorPropertyPath() {
 	path->set_structured_text_bidi_override(TextServer::STRUCTURED_TEXT_FILE);
 	path_hb->add_child(path);
 	path->connect("text_submitted", callable_mp(this, &EditorPropertyPath::_path_selected));
-	path->connect("focus_exited", callable_mp(this, &EditorPropertyPath::_path_focus_exited));
+	path->connect(SceneStringName(focus_exited), callable_mp(this, &EditorPropertyPath::_path_focus_exited));
 	path->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	path_edit = memnew(Button);
@@ -606,7 +605,7 @@ EditorPropertyPath::EditorPropertyPath() {
 	path_hb->add_child(path_edit);
 	add_focusable(path);
 	dialog = nullptr;
-	path_edit->connect("pressed", callable_mp(this, &EditorPropertyPath::_path_pressed));
+	path_edit->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyPath::_path_pressed));
 }
 
 ///////////////////// CLASS NAME /////////////////////////
@@ -647,7 +646,7 @@ EditorPropertyClassName::EditorPropertyClassName() {
 	add_child(property);
 	add_focusable(property);
 	property->set_text(selected_type);
-	property->connect("pressed", callable_mp(this, &EditorPropertyClassName::_property_selected));
+	property->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyClassName::_property_selected));
 	dialog = memnew(CreateDialog);
 	dialog->set_base_type(base_type);
 	dialog->connect("create", callable_mp(this, &EditorPropertyClassName::_dialog_created));
@@ -678,7 +677,7 @@ EditorPropertyCheck::EditorPropertyCheck() {
 	checkbox->set_text(TTR("On"));
 	add_child(checkbox);
 	add_focusable(checkbox);
-	checkbox->connect("pressed", callable_mp(this, &EditorPropertyCheck::_checkbox_pressed));
+	checkbox->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyCheck::_checkbox_pressed));
 }
 
 ///////////////////// ENUM /////////////////////////
@@ -792,7 +791,7 @@ void EditorPropertyFlags::setup(const Vector<String> &p_options) {
 		CheckBox *cb = memnew(CheckBox);
 		cb->set_text(text_split[0]);
 		cb->set_clip_text(true);
-		cb->connect("pressed", callable_mp(this, &EditorPropertyFlags::_flag_toggled).bind(flag_index));
+		cb->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyFlags::_flag_toggled).bind(flag_index));
 		add_focusable(cb);
 		vbox->add_child(cb);
 		flags.push_back(cb);
@@ -855,7 +854,7 @@ EditorPropertyLayersGrid::EditorPropertyLayersGrid() {
 	layer_rename = memnew(PopupMenu);
 	layer_rename->add_item(TTR("Rename layer"), 0);
 	add_child(layer_rename);
-	layer_rename->connect("id_pressed", callable_mp(this, &EditorPropertyLayersGrid::_rename_pressed));
+	layer_rename->connect(SceneStringName(id_pressed), callable_mp(this, &EditorPropertyLayersGrid::_rename_pressed));
 }
 
 Size2 EditorPropertyLayersGrid::get_grid_size() const {
@@ -1297,7 +1296,7 @@ EditorPropertyLayers::EditorPropertyLayers() {
 	button = memnew(TextureButton);
 	button->set_stretch_mode(TextureButton::STRETCH_KEEP_CENTERED);
 	button->set_toggle_mode(true);
-	button->connect("pressed", callable_mp(this, &EditorPropertyLayers::_button_pressed));
+	button->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyLayers::_button_pressed));
 	hb->add_child(button);
 
 	set_bottom_editor(hb);
@@ -1305,7 +1304,7 @@ EditorPropertyLayers::EditorPropertyLayers() {
 	layers = memnew(PopupMenu);
 	add_child(layers);
 	layers->set_hide_on_checkable_item_selection(false);
-	layers->connect("id_pressed", callable_mp(this, &EditorPropertyLayers::_menu_pressed));
+	layers->connect(SceneStringName(id_pressed), callable_mp(this, &EditorPropertyLayers::_menu_pressed));
 	layers->connect("popup_hide", callable_mp((BaseButton *)button, &BaseButton::set_pressed).bind(false));
 	ProjectSettings::get_singleton()->connect("settings_changed", callable_mp(this, &EditorPropertyLayers::_refresh_names));
 }
@@ -1394,7 +1393,7 @@ EditorPropertyObjectID::EditorPropertyObjectID() {
 	add_child(edit);
 	add_focusable(edit);
 	edit->set_text_overrun_behavior(TextServer::OVERRUN_TRIM_ELLIPSIS);
-	edit->connect("pressed", callable_mp(this, &EditorPropertyObjectID::_edit_pressed));
+	edit->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyObjectID::_edit_pressed));
 }
 
 ///////////////////// SIGNAL /////////////////////////
@@ -1421,7 +1420,7 @@ EditorPropertySignal::EditorPropertySignal() {
 	edit = memnew(Button);
 	add_child(edit);
 	add_focusable(edit);
-	edit->connect("pressed", callable_mp(this, &EditorPropertySignal::_edit_pressed));
+	edit->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertySignal::_edit_pressed));
 }
 
 ///////////////////// CALLABLE /////////////////////////
@@ -1681,14 +1680,14 @@ void EditorPropertyEasing::_bind_methods() {
 
 EditorPropertyEasing::EditorPropertyEasing() {
 	easing_draw = memnew(Control);
-	easing_draw->connect("draw", callable_mp(this, &EditorPropertyEasing::_draw_easing));
-	easing_draw->connect("gui_input", callable_mp(this, &EditorPropertyEasing::_drag_easing));
+	easing_draw->connect(SceneStringName(draw), callable_mp(this, &EditorPropertyEasing::_draw_easing));
+	easing_draw->connect(SceneStringName(gui_input), callable_mp(this, &EditorPropertyEasing::_drag_easing));
 	easing_draw->set_default_cursor_shape(Control::CURSOR_MOVE);
 	add_child(easing_draw);
 
 	preset = memnew(PopupMenu);
 	add_child(preset);
-	preset->connect("id_pressed", callable_mp(this, &EditorPropertyEasing::_set_preset));
+	preset->connect(SceneStringName(id_pressed), callable_mp(this, &EditorPropertyEasing::_set_preset));
 
 	spin = memnew(EditorSpinSlider);
 	spin->set_flat(true);
@@ -1699,7 +1698,7 @@ EditorPropertyEasing::EditorPropertyEasing() {
 	spin->set_allow_lesser(true);
 	spin->set_allow_greater(true);
 	spin->connect("value_changed", callable_mp(this, &EditorPropertyEasing::_spin_value_changed));
-	spin->get_line_edit()->connect("focus_exited", callable_mp(this, &EditorPropertyEasing::_spin_focus_exited));
+	spin->get_line_edit()->connect(SceneStringName(focus_exited), callable_mp(this, &EditorPropertyEasing::_spin_focus_exited));
 	spin->hide();
 	add_child(spin);
 }
@@ -2155,7 +2154,7 @@ EditorPropertyQuaternion::EditorPropertyQuaternion() {
 	warning = memnew(Button);
 	warning->set_text(TTR("Temporary Euler may be changed implicitly!"));
 	warning->set_clip_text(true);
-	warning->connect("pressed", callable_mp(this, &EditorPropertyQuaternion::_warning_pressed));
+	warning->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyQuaternion::_warning_pressed));
 	warning_dialog = memnew(AcceptDialog);
 	add_child(warning_dialog);
 	warning_dialog->set_text(TTR("Temporary Euler will not be stored in the object with the original value. Instead, it will be stored as Quaternion with irreversible conversion.\nThis is due to the fact that the result of Euler->Quaternion can be determined uniquely, but the result of Quaternion->Euler can be multi-existent."));
@@ -2183,7 +2182,7 @@ EditorPropertyQuaternion::EditorPropertyQuaternion() {
 	edit_button->set_flat(true);
 	edit_button->set_toggle_mode(true);
 	default_layout->add_child(edit_button);
-	edit_button->connect("pressed", callable_mp(this, &EditorPropertyQuaternion::_edit_custom_value));
+	edit_button->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyQuaternion::_edit_custom_value));
 
 	add_focusable(edit_button);
 
@@ -2646,7 +2645,7 @@ void EditorPropertyColor::_color_changed(const Color &p_color) {
 }
 
 void EditorPropertyColor::_popup_closed() {
-	get_edited_object()->set(get_edited_property(), last_color);
+	get_edited_object()->set(get_edited_property(), was_checked ? Variant(last_color) : Variant());
 	if (!picker->get_pick_color().is_equal_approx(last_color)) {
 		emit_changed(get_edited_property(), picker->get_pick_color(), "", false);
 	}
@@ -2654,6 +2653,7 @@ void EditorPropertyColor::_popup_closed() {
 
 void EditorPropertyColor::_picker_opening() {
 	last_color = picker->get_pick_color();
+	was_checked = !is_checkable() || is_checked();
 }
 
 void EditorPropertyColor::_notification(int p_what) {
@@ -2922,8 +2922,7 @@ void EditorPropertyNodePath::update_property() {
 	assign->set_icon(EditorNode::get_singleton()->get_object_icon(target_node, "Node"));
 }
 
-void EditorPropertyNodePath::setup(const NodePath &p_base_hint, const Vector<StringName> &p_valid_types, bool p_use_path_from_scene_root, bool p_editing_node) {
-	base_hint = p_base_hint;
+void EditorPropertyNodePath::setup(const Vector<StringName> &p_valid_types, bool p_use_path_from_scene_root, bool p_editing_node) {
 	valid_types = p_valid_types;
 	editing_node = p_editing_node;
 	use_path_from_scene_root = p_use_path_from_scene_root;
@@ -2943,10 +2942,6 @@ void EditorPropertyNodePath::_notification(int p_what) {
 }
 
 Node *EditorPropertyNodePath::get_base_node() {
-	if (!base_hint.is_empty() && get_tree()->get_root()->has_node(base_hint)) {
-		return get_tree()->get_root()->get_node(base_hint);
-	}
-
 	Node *base_node = Object::cast_to<Node>(get_edited_object());
 
 	if (!base_node) {
@@ -2982,7 +2977,7 @@ EditorPropertyNodePath::EditorPropertyNodePath() {
 	assign->set_clip_text(true);
 	assign->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 	assign->set_expand_icon(true);
-	assign->connect("pressed", callable_mp(this, &EditorPropertyNodePath::_node_assign));
+	assign->connect(SceneStringName(pressed), callable_mp(this, &EditorPropertyNodePath::_node_assign));
 	SET_DRAG_FORWARDING_CD(assign, EditorPropertyNodePath);
 	hbc->add_child(assign);
 
@@ -2995,12 +2990,12 @@ EditorPropertyNodePath::EditorPropertyNodePath() {
 	menu->get_popup()->add_item(TTR("Copy as Text"), ACTION_COPY);
 	menu->get_popup()->add_item(TTR("Edit"), ACTION_EDIT);
 	menu->get_popup()->add_item(TTR("Show Node in Tree"), ACTION_SELECT);
-	menu->get_popup()->connect(SNAME("id_pressed"), callable_mp(this, &EditorPropertyNodePath::_menu_option));
+	menu->get_popup()->connect(SceneStringName(id_pressed), callable_mp(this, &EditorPropertyNodePath::_menu_option));
 
 	edit = memnew(LineEdit);
 	edit->set_h_size_flags(SIZE_EXPAND_FILL);
 	edit->hide();
-	edit->connect(SNAME("focus_exited"), callable_mp(this, &EditorPropertyNodePath::_accept_text));
+	edit->connect(SceneStringName(focus_exited), callable_mp(this, &EditorPropertyNodePath::_accept_text));
 	edit->connect(SNAME("text_submitted"), callable_mp(this, &EditorPropertyNodePath::_text_submitted));
 	hbc->add_child(edit);
 }
@@ -3141,7 +3136,7 @@ void EditorPropertyResource::_resource_changed(const Ref<Resource> &p_resource) 
 	// Changing the value of Script-type exported variables of the main script should not trigger saving/reloading properties.
 	bool is_script = false;
 	Ref<Script> s = p_resource;
-	if (get_edited_object() && s.is_valid() && get_edited_property() == CoreStringNames::get_singleton()->_script) {
+	if (get_edited_object() && s.is_valid() && get_edited_property() == CoreStringName(script)) {
 		is_script = true;
 		InspectorDock::get_singleton()->store_script_properties(get_edited_object());
 		s->call("set_instance_base_type", get_edited_object()->get_class());
@@ -3218,7 +3213,7 @@ void EditorPropertyResource::_open_editor_pressed() {
 	Ref<Resource> res = get_edited_property_value();
 	if (res.is_valid()) {
 		// May clear the editor so do it deferred.
-		callable_mp(EditorNode::get_singleton(), &EditorNode::edit_item).bind(res.ptr(), this).call_deferred();
+		callable_mp(EditorNode::get_singleton(), &EditorNode::edit_item).call_deferred(res.ptr(), this);
 	}
 }
 
@@ -3280,7 +3275,7 @@ void EditorPropertyResource::setup(Object *p_object, const String &p_path, const
 		EditorShaderPicker *shader_picker = memnew(EditorShaderPicker);
 		shader_picker->set_edited_material(Object::cast_to<ShaderMaterial>(p_object));
 		resource_picker = shader_picker;
-		connect(SNAME("ready"), callable_mp(this, &EditorPropertyResource::_update_preferred_shader));
+		connect(SceneStringName(ready), callable_mp(this, &EditorPropertyResource::_update_preferred_shader));
 	} else if (p_base_type == "AudioStream") {
 		EditorAudioStreamPicker *astream_picker = memnew(EditorAudioStreamPicker);
 		resource_picker = astream_picker;
@@ -3364,8 +3359,6 @@ void EditorPropertyResource::update_property() {
 					EditorNode::get_singleton()->hide_unused_editors();
 					opened_editor = false;
 				}
-
-				_update_property_bg();
 			}
 		}
 	}
@@ -3422,12 +3415,6 @@ bool EditorPropertyResource::is_colored(ColorationMode p_mode) {
 
 void EditorPropertyResource::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_THEME_CHANGED: {
-			if (EditorThemeManager::is_generated_theme_outdated()) {
-				_update_property_bg();
-			}
-		} break;
-
 		case NOTIFICATION_EXIT_TREE: {
 			const EditorInspector *ei = get_parent_inspector();
 			if (ei && !ei->is_main_editor_inspector()) {
@@ -3439,6 +3426,7 @@ void EditorPropertyResource::_notification(int p_what) {
 
 EditorPropertyResource::EditorPropertyResource() {
 	use_sub_inspector = bool(EDITOR_GET("interface/inspector/open_resources_in_current_inspector"));
+	has_borders = true;
 }
 
 ////////////// DEFAULT PLUGIN //////////////////////
@@ -3807,7 +3795,7 @@ EditorProperty *EditorInspectorDefaultPlugin::get_editor_for_property(Object *p_
 			if (p_hint == PROPERTY_HINT_NODE_PATH_VALID_TYPES && !p_hint_text.is_empty()) {
 				Vector<String> types = p_hint_text.split(",", false);
 				Vector<StringName> sn = Variant(types); //convert via variant
-				editor->setup(NodePath(), sn, (p_usage & PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT));
+				editor->setup(sn, (p_usage & PROPERTY_USAGE_NODE_PATH_FROM_SCENE_ROOT));
 			}
 			return editor;
 
@@ -3821,7 +3809,7 @@ EditorProperty *EditorInspectorDefaultPlugin::get_editor_for_property(Object *p_
 				EditorPropertyNodePath *editor = memnew(EditorPropertyNodePath);
 				Vector<String> types = p_hint_text.split(",", false);
 				Vector<StringName> sn = Variant(types); //convert via variant
-				editor->setup(NodePath(), sn, false, true);
+				editor->setup(sn, false, true);
 				return editor;
 			} else {
 				EditorPropertyResource *editor = memnew(EditorPropertyResource);

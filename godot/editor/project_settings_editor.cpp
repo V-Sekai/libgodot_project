@@ -54,7 +54,7 @@ void ProjectSettingsEditor::popup_project_settings(bool p_clear_filter) {
 	if (saved_size != Rect2()) {
 		popup(saved_size);
 	} else {
-		popup_centered_clamped(Size2(900, 700) * EDSCALE, 0.8);
+		popup_centered_clamped(Size2(1200, 700) * EDSCALE, 0.8);
 	}
 
 	_add_feature_overrides();
@@ -587,7 +587,7 @@ void ProjectSettingsEditor::_update_theme() {
 	del_button->set_icon(get_editor_theme_icon(SNAME("Remove")));
 	search_box->set_right_icon(get_editor_theme_icon(SNAME("Search")));
 	restart_close_button->set_icon(get_editor_theme_icon(SNAME("Close")));
-	restart_container->add_theme_style_override("panel", get_theme_stylebox(SNAME("panel"), SNAME("Tree")));
+	restart_container->add_theme_style_override(SceneStringName(panel), get_theme_stylebox(SceneStringName(panel), SNAME("Tree")));
 	restart_icon->set_texture(get_editor_theme_icon(SNAME("StatusWarning")));
 	restart_label->add_theme_color_override("font_color", get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));
 
@@ -683,13 +683,13 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	add_button = memnew(Button);
 	add_button->set_text(TTR("Add"));
 	add_button->set_disabled(true);
-	add_button->connect("pressed", callable_mp(this, &ProjectSettingsEditor::_add_setting));
+	add_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectSettingsEditor::_add_setting));
 	custom_properties->add_child(add_button);
 
 	del_button = memnew(Button);
 	del_button->set_text(TTR("Delete"));
 	del_button->set_disabled(true);
-	del_button->connect("pressed", callable_mp(this, &ProjectSettingsEditor::_delete_setting));
+	del_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectSettingsEditor::_delete_setting));
 	custom_properties->add_child(del_button);
 
 	general_settings_inspector = memnew(SectionedInspector);
@@ -718,13 +718,13 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	restart_hb->add_spacer();
 
 	Button *restart_button = memnew(Button);
-	restart_button->connect("pressed", callable_mp(this, &ProjectSettingsEditor::_editor_restart));
+	restart_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectSettingsEditor::_editor_restart));
 	restart_hb->add_child(restart_button);
 	restart_button->set_text(TTR("Save & Restart"));
 
 	restart_close_button = memnew(Button);
 	restart_close_button->set_flat(true);
-	restart_close_button->connect("pressed", callable_mp(this, &ProjectSettingsEditor::_editor_restart_close));
+	restart_close_button->connect(SceneStringName(pressed), callable_mp(this, &ProjectSettingsEditor::_editor_restart_close));
 	restart_hb->add_child(restart_close_button);
 
 	action_map_editor = memnew(ActionMapEditor);

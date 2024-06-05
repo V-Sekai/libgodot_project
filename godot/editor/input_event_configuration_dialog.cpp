@@ -446,6 +446,11 @@ void InputEventConfigurationDialog::_key_location_selected(int p_location) {
 	_set_event(k, original_event);
 }
 
+void InputEventConfigurationDialog::_input_list_item_activated() {
+	TreeItem *selected = input_list_tree->get_selected();
+	selected->set_collapsed(!selected->is_collapsed());
+}
+
 void InputEventConfigurationDialog::_input_list_item_selected() {
 	TreeItem *selected = input_list_tree->get_selected();
 
@@ -648,8 +653,8 @@ InputEventConfigurationDialog::InputEventConfigurationDialog() {
 	event_listener->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	event_listener->set_stretch_ratio(0.75);
 	event_listener->connect("event_changed", callable_mp(this, &InputEventConfigurationDialog::_on_listen_input_changed));
-	event_listener->connect("focus_entered", callable_mp((AcceptDialog *)this, &AcceptDialog::set_close_on_escape).bind(false));
-	event_listener->connect("focus_exited", callable_mp((AcceptDialog *)this, &AcceptDialog::set_close_on_escape).bind(true));
+	event_listener->connect(SceneStringName(focus_entered), callable_mp((AcceptDialog *)this, &AcceptDialog::set_close_on_escape).bind(false));
+	event_listener->connect(SceneStringName(focus_exited), callable_mp((AcceptDialog *)this, &AcceptDialog::set_close_on_escape).bind(true));
 	main_vbox->add_child(event_listener);
 
 	main_vbox->add_child(memnew(HSeparator));
@@ -670,6 +675,7 @@ InputEventConfigurationDialog::InputEventConfigurationDialog() {
 	input_list_tree = memnew(Tree);
 	input_list_tree->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
 	input_list_tree->set_custom_minimum_size(Size2(0, 100 * EDSCALE)); // Min height for tree
+	input_list_tree->connect("item_activated", callable_mp(this, &InputEventConfigurationDialog::_input_list_item_activated));
 	input_list_tree->connect("item_selected", callable_mp(this, &InputEventConfigurationDialog::_input_list_item_selected));
 	input_list_tree->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	manual_vbox->add_child(input_list_tree);
