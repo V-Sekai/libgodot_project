@@ -43,6 +43,8 @@ namespace godot {
 std::unordered_map<StringName, ClassDB::ClassInfo> ClassDB::classes;
 std::unordered_map<StringName, const GDExtensionInstanceBindingCallbacks *> ClassDB::instance_binding_callbacks;
 std::vector<StringName> ClassDB::class_register_order;
+std::unordered_map<StringName, Object *> ClassDB::engine_singletons;
+std::mutex ClassDB::engine_singletons_mutex;
 GDExtensionInitializationLevel ClassDB::current_level = GDEXTENSION_INITIALIZATION_CORE;
 
 MethodDefinition D_METHOD(StringName p_name) {
@@ -351,7 +353,7 @@ void ClassDB::add_virtual_method(const StringName &p_class, const MethodInfo &p_
 	if (mi.argument_count > 0) {
 		mi.arguments = (GDExtensionPropertyInfo *)memalloc(sizeof(GDExtensionPropertyInfo) * mi.argument_count);
 		mi.arguments_metadata = (GDExtensionClassMethodArgumentMetadata *)memalloc(sizeof(GDExtensionClassMethodArgumentMetadata) * mi.argument_count);
-		for (int i = 0; i < mi.argument_count; i++) {
+		for (uint32_t i = 0; i < mi.argument_count; i++) {
 			mi.arguments[i] = p_method.arguments[i]._to_gdextension();
 			mi.arguments_metadata[i] = p_method.arguments_metadata[i];
 		}
@@ -418,6 +420,22 @@ void ClassDB::deinitialize(GDExtensionInitializationLevel p_level) {
 			return to_erase.count(p_name) > 0;
 		});
 		class_register_order.erase(it, class_register_order.end());
+	}
+
+	if (p_level == GDEXTENSION_INITIALIZATION_CORE) {
+		// Make a new list of the singleton objects, since freeing the instance bindings will lead to
+		// elements getting removed from engine_singletons.
+		std::vector<Object *> singleton_objects;
+		{
+			std::lock_guard<std::mutex> lock(engine_singletons_mutex);
+			singleton_objects.reserve(engine_singletons.size());
+			for (const std::pair<const StringName, Object *> &pair : engine_singletons) {
+				singleton_objects.push_back(pair.second);
+			}
+		}
+		for (std::vector<Object *>::iterator i = singleton_objects.begin(); i != singleton_objects.end(); i++) {
+			internal::gdextension_interface_object_free_instance_binding((*i)->_owner, internal::token);
+		}
 	}
 }
 

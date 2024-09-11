@@ -3,8 +3,9 @@
 #
 # godot-cpp cmake arguments
 # GODOT_GDEXTENSION_DIR:		Path to the directory containing GDExtension interface header and API JSON file
-# GODOT_CPP_SYSTEM_HEADERS		Mark the header files as SYSTEM. This may be useful to supress warnings in projects including this one.
+# GODOT_CPP_SYSTEM_HEADERS		Mark the header files as SYSTEM. This may be useful to suppress warnings in projects including this one.
 # GODOT_CPP_WARNING_AS_ERROR	Treat any warnings as errors
+# GODOT_ENABLE_HOT_RELOAD       Build with hot reload support. Defaults to YES for Debug-builds and NO for Release-builds.
 # GODOT_CUSTOM_API_FILE:		Path to a custom GDExtension API JSON file (takes precedence over `gdextension_dir`)
 # FLOAT_PRECISION:				Floating-point precision level ("single", "double")
 #
@@ -34,6 +35,10 @@
 # Generate the buildfiles in a sub directory to not clutter the root directory with build files:
 # mkdir build && cd build && cmake -G "Unix Makefiles" .. && cmake --build .
 #
+# Ensure that you avoid exposing godot-cpp symbols - this might lead to hard to debug errors if you ever load multiple
+# plugins using difference godot-cpp versions. Use visibility hidden whenever possible:
+# set_target_properties(<all-my-plugin-related-targets> PROPERTIES CXX_VISIBILITY_PRESET hidden)
+#
 # Todo
 # Test build for Windows, Mac and mingw.
 
@@ -55,6 +60,13 @@ set( compiler_is_msvc "$<CXX_COMPILER_ID:MSVC>" )
 # Default build type is Debug in the SConstruct
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
 	set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+# Hot reload is enabled by default in Debug-builds
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    option(GODOT_ENABLE_HOT_RELOAD "Build with hot reload support" ON)
+else()
+    option(GODOT_ENABLE_HOT_RELOAD "Build with hot reload support" OFF)
 endif()
 
 if(NOT DEFINED BITS)
@@ -158,6 +170,11 @@ target_compile_features(${PROJECT_NAME}
 		cxx_std_17
 )
 
+if(GODOT_ENABLE_HOT_RELOAD)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC HOT_RELOAD_ENABLED)
+	target_compile_options(${PROJECT_NAME} PUBLIC $<${compiler_is_gnu}:-fno-gnu-unique>)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CONFIG:Debug>:
 		DEBUG_ENABLED
@@ -209,6 +226,7 @@ set_target_properties(${PROJECT_NAME}
 	PROPERTIES
 		CXX_EXTENSIONS OFF
 		POSITION_INDEPENDENT_CODE ON
+		CXX_VISIBILITY_PRESET hidden
 		ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
 		LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"
 		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"

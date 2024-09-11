@@ -82,6 +82,9 @@ private:
 	Vector2 dprop[3];
 	int last_rpc_arg = 0;
 
+	const bool object_instance_binding_set_by_parent_constructor;
+	bool has_object_instance_binding() const;
+
 public:
 	// Constants.
 	enum Constants {
@@ -120,6 +123,8 @@ public:
 	void emit_custom_signal(const String &name, int value);
 	int def_args(int p_a = 100, int p_b = 200);
 
+	bool is_object_binding_set_by_parent_constructor() const;
+
 	Array test_array() const;
 	int test_tarray_arg(const TypedArray<int64_t> &p_array);
 	TypedArray<Vector2> test_tarray() const;
@@ -127,8 +132,9 @@ public:
 	Example *test_node_argument(Example *p_node) const;
 	String test_string_ops() const;
 	String test_str_utility() const;
-	bool test_string_is_fourty_two(const String &p_str) const;
+	bool test_string_is_forty_two(const String &p_str) const;
 	String test_string_resize(String p_original) const;
+	TypedArray<PackedInt32Array> test_typed_array_of_packed() const;
 	int test_vector_ops() const;
 	int test_vector_init_list() const;
 
@@ -186,6 +192,11 @@ public:
 
 	GDVIRTUAL2R(String, _do_something_virtual, String, int);
 	String test_virtual_implemented_in_script(const String &p_name, int p_value);
+	GDVIRTUAL1(_do_something_virtual_with_control, Control *);
+
+	String test_use_engine_singleton() const;
+
+	static String test_library_path();
 };
 
 VARIANT_ENUM_CAST(Example::Constants);

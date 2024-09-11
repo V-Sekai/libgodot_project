@@ -45,6 +45,7 @@
 #include <godot_cpp/variant/callable_method_pointer.hpp>
 
 #include <list>
+#include <mutex>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -104,6 +105,8 @@ private:
 	static std::unordered_map<StringName, const GDExtensionInstanceBindingCallbacks *> instance_binding_callbacks;
 	// Used to remember the custom class registration order.
 	static std::vector<StringName> class_register_order;
+	static std::unordered_map<StringName, Object *> engine_singletons;
+	static std::mutex engine_singletons_mutex;
 
 	static MethodBind *bind_methodfi(uint32_t p_flags, MethodBind *p_bind, const MethodDefinition &method_name, const void **p_defs, int p_defcount);
 	static void initialize_class(const ClassInfo &cl);
@@ -151,6 +154,21 @@ public:
 
 	_FORCE_INLINE_ static void _register_engine_class(const StringName &p_name, const GDExtensionInstanceBindingCallbacks *p_callbacks) {
 		instance_binding_callbacks[p_name] = p_callbacks;
+	}
+
+	static void _register_engine_singleton(const StringName &p_class_name, Object *p_singleton) {
+		std::lock_guard<std::mutex> lock(engine_singletons_mutex);
+		std::unordered_map<StringName, Object *>::const_iterator i = engine_singletons.find(p_class_name);
+		if (i != engine_singletons.end()) {
+			ERR_FAIL_COND((*i).second != p_singleton);
+			return;
+		}
+		engine_singletons[p_class_name] = p_singleton;
+	}
+
+	static void _unregister_engine_singleton(const StringName &p_class_name) {
+		std::lock_guard<std::mutex> lock(engine_singletons_mutex);
+		engine_singletons.erase(p_class_name);
 	}
 
 	template <typename N, typename M, typename... VarArgs>
@@ -331,11 +349,11 @@ MethodBind *ClassDB::bind_vararg_method(uint32_t p_flags, StringName p_name, M p
 	return bind;
 }
 
-#define GDREGISTER_CLASS(m_class) ClassDB::register_class<m_class>();
-#define GDREGISTER_VIRTUAL_CLASS(m_class) ClassDB::register_class<m_class>(true);
-#define GDREGISTER_ABSTRACT_CLASS(m_class) ClassDB::register_abstract_class<m_class>();
-#define GDREGISTER_INTERNAL_CLASS(m_class) ClassDB::register_internal_class<m_class>();
-#define GDREGISTER_RUNTIME_CLASS(m_class) ClassDB::register_runtime_class<m_class>();
+#define GDREGISTER_CLASS(m_class) ::godot::ClassDB::register_class<m_class>();
+#define GDREGISTER_VIRTUAL_CLASS(m_class) ::godot::ClassDB::register_class<m_class>(true);
+#define GDREGISTER_ABSTRACT_CLASS(m_class) ::godot::ClassDB::register_abstract_class<m_class>();
+#define GDREGISTER_INTERNAL_CLASS(m_class) ::godot::ClassDB::register_internal_class<m_class>();
+#define GDREGISTER_RUNTIME_CLASS(m_class) ::godot::ClassDB::register_runtime_class<m_class>();
 
 } // namespace godot
 

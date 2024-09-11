@@ -9,12 +9,15 @@ class TestClass:
 func _ready():
 	var example: Example = $Example
 
+	# Timing of set instance binding.
+	assert_equal(example.is_object_binding_set_by_parent_constructor(), true)
+
 	# Signal.
 	example.emit_custom_signal("Button", 42)
 	assert_equal(custom_signal_emitted, ["Button", 42])
 
 	# To string.
-	assert_equal(example.to_string(),'Example:[ GDExtension::Example <--> Instance ID:%s ]' % example.get_instance_id())
+	assert_equal(example.to_string(),'[ GDExtension::Example <--> Instance ID:%s ]' % example.get_instance_id())
 	# It appears there's a bug with instance ids :-(
 	#assert_equal($Example/ExampleMin.to_string(), 'ExampleMin:[Wrapped:%s]' % $Example/ExampleMin.get_instance_id())
 
@@ -93,8 +96,8 @@ func _ready():
 	assert_equal(example.test_str_utility(), "Hello, World! The answer is 42")
 
 	# Test converting string to char* and doing comparison.
-	assert_equal(example.test_string_is_fourty_two("blah"), false)
-	assert_equal(example.test_string_is_fourty_two("fourty two"), true)
+	assert_equal(example.test_string_is_forty_two("blah"), false)
+	assert_equal(example.test_string_is_forty_two("forty two"), true)
 
 	# String::resize().
 	assert_equal(example.test_string_resize("What"), "What!?")
@@ -256,6 +259,9 @@ func _ready():
 	assert_equal(example.test_virtual_implemented_in_script("Virtual", 939), "Implemented")
 	assert_equal(custom_signal_emitted, ["Virtual", 939])
 
+	# Test that we can access an engine singleton.
+	assert_equal(example.test_use_engine_singleton(), OS.get_name())
+
 	# Test that notifications happen on both parent and child classes.
 	var example_child = $ExampleChild
 	assert_equal(example_child.get_value1(), 11)
@@ -263,6 +269,12 @@ func _ready():
 	example_child.notification(NOTIFICATION_ENTER_TREE, true)
 	assert_equal(example_child.get_value1(), 11)
 	assert_equal(example_child.get_value2(), 22)
+
+	# Test that the extension's library path is absolute and valid.
+	var library_path = Example.test_library_path()
+	assert_equal(library_path.begins_with("res://"), false)
+	assert_equal(library_path, ProjectSettings.globalize_path(library_path))
+	assert_equal(FileAccess.file_exists(library_path), true)
 
 	exit_with_status()
 

@@ -185,6 +185,7 @@ MAKE_TYPE_INFO(PackedFloat64Array, GDEXTENSION_VARIANT_TYPE_PACKED_FLOAT64_ARRAY
 MAKE_TYPE_INFO(PackedStringArray, GDEXTENSION_VARIANT_TYPE_PACKED_STRING_ARRAY)
 MAKE_TYPE_INFO(PackedVector2Array, GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY)
 MAKE_TYPE_INFO(PackedVector3Array, GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR3_ARRAY)
+MAKE_TYPE_INFO(PackedVector4Array, GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR4_ARRAY)
 MAKE_TYPE_INFO(PackedColorArray, GDEXTENSION_VARIANT_TYPE_PACKED_COLOR_ARRAY)
 
 // For variant.
@@ -208,8 +209,8 @@ struct GetTypeInfo<const Variant &> {
 
 template <typename T>
 struct GetTypeInfo<T *, typename EnableIf<TypeInherits<Object, T>::value>::type> {
-	static const GDExtensionVariantType VARIANT_TYPE = GDEXTENSION_VARIANT_TYPE_OBJECT;
-	static const GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
+	static constexpr GDExtensionVariantType VARIANT_TYPE = GDEXTENSION_VARIANT_TYPE_OBJECT;
+	static constexpr GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
 	static inline PropertyInfo get_class_info() {
 		return make_property_info(Variant::Type::OBJECT, "", PROPERTY_HINT_RESOURCE_TYPE, T::get_class_static());
 	}
@@ -217,8 +218,8 @@ struct GetTypeInfo<T *, typename EnableIf<TypeInherits<Object, T>::value>::type>
 
 template <typename T>
 struct GetTypeInfo<const T *, typename EnableIf<TypeInherits<Object, T>::value>::type> {
-	static const GDExtensionVariantType VARIANT_TYPE = GDEXTENSION_VARIANT_TYPE_OBJECT;
-	static const GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
+	static constexpr GDExtensionVariantType VARIANT_TYPE = GDEXTENSION_VARIANT_TYPE_OBJECT;
+	static constexpr GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;
 	static inline PropertyInfo get_class_info() {
 		return make_property_info(Variant::Type::OBJECT, "", PROPERTY_HINT_RESOURCE_TYPE, T::get_class_static());
 	}
@@ -236,8 +237,8 @@ inline String enum_qualified_name_to_class_info_name(const String &p_qualified_n
 #define TEMPL_MAKE_ENUM_TYPE_INFO(m_enum, m_impl)                                                                                            \
 	template <>                                                                                                                              \
 	struct GetTypeInfo<m_impl> {                                                                                                             \
-		static const Variant::Type VARIANT_TYPE = Variant::INT;                                                                              \
-		static const GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                            \
+		static constexpr Variant::Type VARIANT_TYPE = Variant::INT;                                                                          \
+		static constexpr GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                        \
 		static inline PropertyInfo get_class_info() {                                                                                        \
 			return make_property_info(Variant::Type::INT, "", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_CLASS_IS_ENUM, \
 					enum_qualified_name_to_class_info_name(#m_enum));                                                                        \
@@ -274,8 +275,8 @@ public:
 #define TEMPL_MAKE_BITFIELD_TYPE_INFO(m_enum, m_impl)                                                                                            \
 	template <>                                                                                                                                  \
 	struct GetTypeInfo<m_impl> {                                                                                                                 \
-		static const Variant::Type VARIANT_TYPE = Variant::INT;                                                                                  \
-		static const GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                                \
+		static constexpr Variant::Type VARIANT_TYPE = Variant::INT;                                                                              \
+		static constexpr GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                            \
 		static inline PropertyInfo get_class_info() {                                                                                            \
 			return make_property_info(Variant::Type::INT, "", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_CLASS_IS_BITFIELD, \
 					enum_qualified_name_to_class_info_name(#m_enum));                                                                            \
@@ -283,8 +284,8 @@ public:
 	};                                                                                                                                           \
 	template <>                                                                                                                                  \
 	struct GetTypeInfo<BitField<m_impl>> {                                                                                                       \
-		static const Variant::Type VARIANT_TYPE = Variant::INT;                                                                                  \
-		static const GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                                \
+		static constexpr Variant::Type VARIANT_TYPE = Variant::INT;                                                                              \
+		static constexpr GDExtensionClassMethodArgumentMetadata METADATA = GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE;                            \
 		static inline PropertyInfo get_class_info() {                                                                                            \
 			return make_property_info(Variant::Type::INT, "", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_CLASS_IS_BITFIELD, \
 					enum_qualified_name_to_class_info_name(#m_enum));                                                                            \
@@ -396,16 +397,17 @@ MAKE_TYPED_ARRAY_INFO(Callable, Variant::CALLABLE)
 MAKE_TYPED_ARRAY_INFO(Signal, Variant::SIGNAL)
 MAKE_TYPED_ARRAY_INFO(Dictionary, Variant::DICTIONARY)
 MAKE_TYPED_ARRAY_INFO(Array, Variant::ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedByteArray, Variant::PACKED_BYTE_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedInt32Array, Variant::PACKED_INT32_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedInt64Array, Variant::PACKED_INT64_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedFloat32Array, Variant::PACKED_FLOAT32_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedFloat64Array, Variant::PACKED_FLOAT64_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedStringArray, Variant::PACKED_STRING_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedVector2Array, Variant::PACKED_VECTOR2_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedVector3Array, Variant::PACKED_VECTOR3_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedVector4Array, Variant::PACKED_VECTOR4_ARRAY)
+MAKE_TYPED_ARRAY_INFO(PackedColorArray, Variant::PACKED_COLOR_ARRAY)
 /*
-MAKE_TYPED_ARRAY_INFO(Vector<uint8_t>, Variant::PACKED_BYTE_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<int32_t>, Variant::PACKED_INT32_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<int64_t>, Variant::PACKED_INT64_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<float>, Variant::PACKED_FLOAT32_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<double>, Variant::PACKED_FLOAT64_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<String>, Variant::PACKED_STRING_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<Vector2>, Variant::PACKED_VECTOR2_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<Vector3>, Variant::PACKED_VECTOR3_ARRAY)
-MAKE_TYPED_ARRAY_INFO(Vector<Color>, Variant::PACKED_COLOR_ARRAY)
 MAKE_TYPED_ARRAY_INFO(IPAddress, Variant::STRING)
 */
 
