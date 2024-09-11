@@ -99,8 +99,8 @@ if not os.access(host_godot, os.X_OK) or force_host_rebuild == 1:
     if os.path.exists(host_godot):
         os.remove(host_godot)
     command = "scons"
-    platform = f"p={host_platform}"
-    target = f"target={host_target}"
+    platform = f"{host_platform}"
+    target = f"{host_target}"
     options = host_build_options.split()
     run_args = [command, platform, target] + options
     subprocess.run(run_args, 
