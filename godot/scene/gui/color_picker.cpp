@@ -54,6 +54,18 @@ void ColorPicker::_notification(int p_what) {
 			_update_color();
 		} break;
 
+		case NOTIFICATION_READY: {
+			// FIXME: The embedding check is needed to fix a bug in single-window mode (GH-93718).
+			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_SCREEN_CAPTURE) && !get_tree()->get_root()->is_embedding_subwindows()) {
+				btn_pick->set_tooltip_text(ETR("Pick a color from the screen."));
+				btn_pick->connect(SceneStringName(pressed), callable_mp(this, &ColorPicker::_pick_button_pressed));
+			} else {
+				// On unsupported platforms, use a legacy method for color picking.
+				btn_pick->set_tooltip_text(ETR("Pick a color from the application window."));
+				btn_pick->connect(SceneStringName(pressed), callable_mp(this, &ColorPicker::_pick_button_pressed_legacy));
+			}
+		} break;
+
 		case NOTIFICATION_TRANSLATION_CHANGED: {
 			List<BaseButton *> buttons;
 			preset_group->get_buttons(&buttons);
@@ -419,7 +431,7 @@ void ColorPicker::create_slider(GridContainer *gc, int idx) {
 	gc->add_child(val);
 
 	LineEdit *vle = val->get_line_edit();
-	vle->connect("text_changed", callable_mp(this, &ColorPicker::_text_changed));
+	vle->connect(SceneStringName(text_changed), callable_mp(this, &ColorPicker::_text_changed));
 	vle->connect(SceneStringName(gui_input), callable_mp(this, &ColorPicker::_line_edit_input));
 	vle->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_RIGHT);
 
@@ -428,7 +440,7 @@ void ColorPicker::create_slider(GridContainer *gc, int idx) {
 	slider->set_h_size_flags(SIZE_EXPAND_FILL);
 
 	slider->connect("drag_started", callable_mp(this, &ColorPicker::_slider_drag_started));
-	slider->connect("value_changed", callable_mp(this, &ColorPicker::_slider_value_changed).unbind(1));
+	slider->connect(SceneStringName(value_changed), callable_mp(this, &ColorPicker::_slider_value_changed).unbind(1));
 	slider->connect("drag_ended", callable_mp(this, &ColorPicker::_slider_drag_ended).unbind(1));
 	slider->connect(SceneStringName(draw), callable_mp(this, &ColorPicker::_slider_draw).bind(idx));
 	slider->connect(SceneStringName(gui_input), callable_mp(this, &ColorPicker::_slider_or_spin_input));
@@ -1834,14 +1846,6 @@ ColorPicker::ColorPicker() {
 
 	btn_pick = memnew(Button);
 	sample_hbc->add_child(btn_pick);
-	if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_SCREEN_CAPTURE)) {
-		btn_pick->set_tooltip_text(ETR("Pick a color from the screen."));
-		btn_pick->connect(SceneStringName(pressed), callable_mp(this, &ColorPicker::_pick_button_pressed));
-	} else {
-		// On unsupported platforms, use a legacy method for color picking.
-		btn_pick->set_tooltip_text(ETR("Pick a color from the application window."));
-		btn_pick->connect(SceneStringName(pressed), callable_mp(this, &ColorPicker::_pick_button_pressed_legacy));
-	}
 
 	sample = memnew(TextureRect);
 	sample_hbc->add_child(sample);
@@ -1949,7 +1953,7 @@ ColorPicker::ColorPicker() {
 	c_text->set_tooltip_text(ETR("Enter a hex code (\"#ff0000\") or named color (\"red\")."));
 	c_text->set_placeholder(ETR("Hex code or named color"));
 	c_text->connect("text_submitted", callable_mp(this, &ColorPicker::_html_submitted));
-	c_text->connect("text_changed", callable_mp(this, &ColorPicker::_text_changed));
+	c_text->connect(SceneStringName(text_changed), callable_mp(this, &ColorPicker::_text_changed));
 	c_text->connect(SceneStringName(focus_exited), callable_mp(this, &ColorPicker::_html_focus_exit));
 
 	wheel_edit = memnew(AspectRatioContainer);

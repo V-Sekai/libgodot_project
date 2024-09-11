@@ -38,12 +38,11 @@
 #define mathMax(x, y) (((x) > (y)) ? (x) : (y))
 
 
-bool mathInverse(const Matrix* m, Matrix* out);
-Matrix mathMultiply(const Matrix* lhs, const Matrix* rhs);
-void mathRotate(Matrix* m, float degree);
-bool mathIdentity(const Matrix* m);
-void mathMultiply(Point* pt, const Matrix* transform);
+/************************************************************************/
+/* General functions                                                    */
+/************************************************************************/
 
+float mathAtan2(float y, float x);
 
 static inline float mathDeg2Rad(float degree)
 {
@@ -63,32 +62,25 @@ static inline bool mathZero(float a)
 }
 
 
-static inline bool mathZero(const Point& p)
-{
-    return mathZero(p.x) && mathZero(p.y);
-}
-
-
 static inline bool mathEqual(float a, float b)
 {
     return mathZero(a - b);
 }
 
 
-static inline bool mathEqual(const Matrix& a, const Matrix& b)
-{
-    if (!mathEqual(a.e11, b.e11) || !mathEqual(a.e12, b.e12) || !mathEqual(a.e13, b.e13) ||
-        !mathEqual(a.e21, b.e21) || !mathEqual(a.e22, b.e22) || !mathEqual(a.e23, b.e23) ||
-        !mathEqual(a.e31, b.e31) || !mathEqual(a.e32, b.e32) || !mathEqual(a.e33, b.e33)) {
-       return false;
-    }
-    return true;
-}
+/************************************************************************/
+/* Matrix functions                                                     */
+/************************************************************************/
 
+void mathRotate(Matrix* m, float degree);
+bool mathInverse(const Matrix* m, Matrix* out);
+bool mathIdentity(const Matrix* m);
+Matrix operator*(const Matrix& lhs, const Matrix& rhs);
+bool operator==(const Matrix& lhs, const Matrix& rhs);
 
 static inline bool mathRightAngle(const Matrix* m)
 {
-   auto radian = fabsf(atan2f(m->e21, m->e11));
+   auto radian = fabsf(mathAtan2(m->e21, m->e11));
    if (radian < FLOAT_EPSILON || mathEqual(radian, MATH_PI2) || mathEqual(radian, MATH_PI)) return true;
    return false;
 }
@@ -111,15 +103,6 @@ static inline void mathIdentity(Matrix* m)
     m->e31 = 0.0f;
     m->e32 = 0.0f;
     m->e33 = 1.0f;
-}
-
-
-static inline void mathTransform(Matrix* transform, Point* coord)
-{
-    auto x = coord->x;
-    auto y = coord->y;
-    coord->x = x * transform->e11 + y * transform->e12 + transform->e13;
-    coord->y = x * transform->e21 + y * transform->e22 + transform->e23;
 }
 
 
@@ -158,9 +141,35 @@ static inline void mathTranslateR(Matrix* m, float x, float y)
 }
 
 
-static inline void mathLog(Matrix* m)
+static inline bool operator!=(const Matrix& lhs, const Matrix& rhs)
 {
-    TVGLOG("MATH", "Matrix: [%f %f %f] [%f %f %f] [%f %f %f]", m->e11, m->e12, m->e13, m->e21, m->e22, m->e23, m->e31, m->e32, m->e33);
+    return !(lhs == rhs);
+}
+
+
+static inline void operator*=(Matrix& lhs, const Matrix& rhs)
+{
+    lhs = lhs * rhs;
+}
+
+
+static inline void mathLog(const Matrix& m)
+{
+    TVGLOG("COMMON", "Matrix: [%f %f %f] [%f %f %f] [%f %f %f]", m.e11, m.e12, m.e13, m.e21, m.e22, m.e23, m.e31, m.e32, m.e33);
+}
+
+
+/************************************************************************/
+/* Point functions                                                      */
+/************************************************************************/
+
+void operator*=(Point& pt, const Matrix& m);
+Point operator*(const Point& pt, const Matrix& m);
+
+
+static inline bool mathZero(const Point& p)
+{
+    return mathZero(p.x) && mathZero(p.y);
 }
 
 
@@ -179,6 +188,18 @@ static inline float mathLength(const Point* a, const Point* b)
 static inline float mathLength(const Point& a)
 {
     return sqrtf(a.x * a.x + a.y * a.y);
+}
+
+
+static inline bool operator==(const Point& lhs, const Point& rhs)
+{
+    return mathEqual(lhs.x, rhs.x) && mathEqual(lhs.y, rhs.y);
+}
+
+
+static inline bool operator!=(const Point& lhs, const Point& rhs)
+{
+    return !(lhs == rhs);
 }
 
 
@@ -211,6 +232,15 @@ static inline Point operator/(const Point& lhs, const float rhs)
     return {lhs.x / rhs, lhs.y / rhs};
 }
 
+
+static inline void mathLog(const Point& pt)
+{
+    TVGLOG("COMMON", "Point: [%f %f]", pt.x, pt.y);
+}
+
+/************************************************************************/
+/* Interpolation functions                                              */
+/************************************************************************/
 
 template <typename T>
 static inline T mathLerp(const T &start, const T &end, float t)

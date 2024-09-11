@@ -32,6 +32,20 @@
 /* External Class Implementation                                        */
 /************************************************************************/
 
+uint32_t RenderMethod::ref()
+{
+    ScopedLock lock(key);
+    return (++refCnt);
+}
+
+
+uint32_t RenderMethod::unref()
+{
+    ScopedLock lock(key);
+    return (--refCnt);
+}
+
+
 void RenderTransform::override(const Matrix& m)
 {
     this->m = m;
@@ -43,19 +57,24 @@ void RenderTransform::update()
 {
     if (overriding) return;
 
-    mathIdentity(&m);
+    m.e11 = 1.0f;
+    m.e12 = 0.0f;
+
+    m.e21 = 0.0f;
+    m.e22 = 1.0f;
+
+    m.e31 = 0.0f;
+    m.e32 = 0.0f;
+    m.e33 = 1.0f;
 
     mathScale(&m, scale, scale);
-
-    if (!mathZero(degree)) mathRotate(&m, degree);
-
-    mathTranslate(&m, x, y);
+    mathRotate(&m, degree);
 }
 
 
 RenderTransform::RenderTransform(const RenderTransform* lhs, const RenderTransform* rhs)
 {
-    if (lhs && rhs) m = mathMultiply(&lhs->m, &rhs->m);
+    if (lhs && rhs) m = lhs->m * rhs->m;
     else if (lhs) m = lhs->m;
     else if (rhs) m = rhs->m;
     else mathIdentity(&m);

@@ -546,6 +546,11 @@ void GraphEdit::_graph_node_slot_updated(int p_index, Node *p_node) {
 	GraphNode *graph_node = Object::cast_to<GraphNode>(p_node);
 	ERR_FAIL_NULL(graph_node);
 
+	// Update all adjacent connections during the next redraw.
+	for (const Ref<Connection> &conn : connection_map[graph_node->get_name()]) {
+		conn->_cache.dirty = true;
+	}
+
 	minimap->queue_redraw();
 	queue_redraw();
 	connections_layer->queue_redraw();
@@ -690,6 +695,10 @@ void GraphEdit::remove_child_notify(Node *p_child) {
 		graph_element->disconnect("raise_request", callable_mp(this, &GraphEdit::_ensure_node_order_from));
 		graph_element->disconnect("resize_request", callable_mp(this, &GraphEdit::_graph_element_resize_request));
 
+		if (connections_layer != nullptr && connections_layer->is_inside_tree()) {
+			graph_element->disconnect(SceneStringName(item_rect_changed), callable_mp((CanvasItem *)connections_layer, &CanvasItem::queue_redraw));
+		}
+
 		// In case of the whole GraphEdit being destroyed these references can already be freed.
 		if (minimap != nullptr && minimap->is_inside_tree()) {
 			graph_element->disconnect(SceneStringName(item_rect_changed), callable_mp((CanvasItem *)minimap, &GraphEditMinimap::queue_redraw));
@@ -782,7 +791,9 @@ Rect2 GraphEdit::_compute_shrinked_frame_rect(const GraphFrame *p_frame) {
 		return Rect2(p_frame->get_position_offset(), Size2());
 	}
 
-	min_point -= Size2(autoshrink_margin, autoshrink_margin);
+	const Size2 titlebar_size = p_frame->get_titlebar_size();
+
+	min_point -= Size2(autoshrink_margin, MAX(autoshrink_margin, titlebar_size.y));
 	max_point += Size2(autoshrink_margin, autoshrink_margin);
 
 	return Rect2(min_point, max_point - min_point);
@@ -901,7 +912,7 @@ bool GraphEdit::_filter_input(const Point2 &p_point) {
 
 		// This prevents interactions with a port hotzone that is behind another node.
 		Rect2 graph_node_rect = Rect2(graph_node->get_position(), graph_node->get_size() * zoom);
-		if (graph_node_rect.has_point(click_pos * zoom)) {
+		if (graph_node_rect.has_point(p_point)) {
 			break;
 		}
 	}
@@ -1033,12 +1044,6 @@ void GraphEdit::_top_connection_layer_input(const Ref<InputEvent> &p_ev) {
 					return;
 				}
 			}
-
-			// This prevents interactions with a port hotzone that is behind another node.
-			Rect2 graph_node_rect = Rect2(graph_node->get_position(), graph_node->get_size() * zoom);
-			if (graph_node_rect.has_point(click_pos * zoom)) {
-				break;
-			}
 		}
 	}
 
@@ -1109,6 +1114,12 @@ void GraphEdit::_top_connection_layer_input(const Ref<InputEvent> &p_ev) {
 						}
 					}
 					connecting_target_valid = false;
+				}
+
+				// This prevents interactions with a port hotzone that is behind another node.
+				Rect2 graph_node_rect = Rect2(graph_node->get_position(), graph_node->get_size() * zoom);
+				if (graph_node_rect.has_point(mm->get_position())) {
+					break;
 				}
 			}
 		}
@@ -2816,8 +2827,8 @@ GraphEdit::GraphEdit() {
 	v_scrollbar->set_min(-10000);
 	v_scrollbar->set_max(10000);
 
-	h_scrollbar->connect("value_changed", callable_mp(this, &GraphEdit::_scroll_moved));
-	v_scrollbar->connect("value_changed", callable_mp(this, &GraphEdit::_scroll_moved));
+	h_scrollbar->connect(SceneStringName(value_changed), callable_mp(this, &GraphEdit::_scroll_moved));
+	v_scrollbar->connect(SceneStringName(value_changed), callable_mp(this, &GraphEdit::_scroll_moved));
 
 	// Toolbar menu.
 
@@ -2893,7 +2904,7 @@ GraphEdit::GraphEdit() {
 	snapping_distance_spinbox->set_value(snapping_distance);
 	snapping_distance_spinbox->set_tooltip_text(ETR("Change the snapping distance."));
 	menu_hbox->add_child(snapping_distance_spinbox);
-	snapping_distance_spinbox->connect("value_changed", callable_mp(this, &GraphEdit::_snapping_distance_changed));
+	snapping_distance_spinbox->connect(SceneStringName(value_changed), callable_mp(this, &GraphEdit::_snapping_distance_changed));
 
 	// Extra controls.
 

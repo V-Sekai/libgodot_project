@@ -1420,7 +1420,7 @@ void RasterizerSceneGLES3::_fill_render_list(RenderListType p_render_list, const
 #else
 				bool force_alpha = false;
 #endif
-				if (!force_alpha && (surf->flags & GeometryInstanceSurface::FLAG_PASS_OPAQUE)) {
+				if (!force_alpha && (surf->flags & (GeometryInstanceSurface::FLAG_PASS_DEPTH | GeometryInstanceSurface::FLAG_PASS_OPAQUE))) {
 					rl->add_element(surf);
 				}
 				if (force_alpha || (surf->flags & GeometryInstanceSurface::FLAG_PASS_ALPHA)) {
@@ -2245,9 +2245,8 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 	}
 
 	bool glow_enabled = false;
-	if (p_environment.is_valid() && rb.is_valid()) {
+	if (p_environment.is_valid()) {
 		glow_enabled = environment_get_glow_enabled(p_environment);
-		rb->set_glow_enabled(glow_enabled); // ensure our intermediate buffer is available if glow is enabled
 		if (glow_enabled) {
 			// If glow is enabled, we apply tonemapping etc. in post, so disable it during rendering
 			apply_color_adjustments_in_post = true;
@@ -2397,6 +2396,7 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 		float bg_energy_multiplier = environment_get_bg_energy_multiplier(render_data.environment);
 		bg_energy_multiplier *= environment_get_bg_intensity(render_data.environment);
 		RS::EnvironmentReflectionSource reflection_source = environment_get_reflection_source(render_data.environment);
+		RS::EnvironmentAmbientSource ambient_source = environment_get_ambient_source(render_data.environment);
 
 		if (render_data.camera_attributes.is_valid()) {
 			bg_energy_multiplier *= RSG::camera_attributes->camera_attributes_get_exposure_normalization_factor(render_data.camera_attributes);
@@ -2437,8 +2437,13 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 			}
 		}
 
+		bool sky_reflections = reflection_source == RS::ENV_REFLECTION_SOURCE_SKY;
+		sky_reflections |= reflection_source == RS::ENV_REFLECTION_SOURCE_BG && bg_mode == RS::ENV_BG_SKY;
+		bool sky_ambient = ambient_source == RS::ENV_AMBIENT_SOURCE_SKY;
+		sky_ambient |= ambient_source == RS::ENV_AMBIENT_SOURCE_BG && bg_mode == RS::ENV_BG_SKY;
+
 		// setup sky if used for ambient, reflections, or background
-		if (draw_sky || draw_sky_fog_only || (reflection_source == RS::ENV_REFLECTION_SOURCE_BG && bg_mode == RS::ENV_BG_SKY) || reflection_source == RS::ENV_REFLECTION_SOURCE_SKY || environment_get_ambient_source(render_data.environment) == RS::ENV_AMBIENT_SOURCE_SKY) {
+		if (draw_sky || draw_sky_fog_only || sky_reflections || sky_ambient) {
 			RENDER_TIMESTAMP("Setup Sky");
 			Projection projection = render_data.cam_projection;
 			if (is_reflection_probe) {
@@ -2452,7 +2457,7 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 			_setup_sky(&render_data, *render_data.lights, projection, render_data.cam_transform, screen_size);
 
 			if (environment_get_sky(render_data.environment).is_valid()) {
-				if (environment_get_reflection_source(render_data.environment) == RS::ENV_REFLECTION_SOURCE_SKY || environment_get_ambient_source(render_data.environment) == RS::ENV_AMBIENT_SOURCE_SKY || (environment_get_reflection_source(render_data.environment) == RS::ENV_REFLECTION_SOURCE_BG && environment_get_background(render_data.environment) == RS::ENV_BG_SKY)) {
+				if (sky_reflections || sky_ambient) {
 					_update_sky_radiance(render_data.environment, projection, render_data.cam_transform, sky_energy_multiplier);
 				}
 			} else {
@@ -2466,6 +2471,7 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 	if (is_reflection_probe) {
 		fbo = GLES3::LightStorage::get_singleton()->reflection_probe_instance_get_framebuffer(render_data.reflection_probe, render_data.reflection_probe_pass);
 	} else {
+		rb->set_apply_color_adjustments_in_post(apply_color_adjustments_in_post);
 		fbo = rb->get_render_fbo();
 	}
 
@@ -2493,7 +2499,9 @@ void RasterizerSceneGLES3::render_scene(const Ref<RenderSceneBuffers> &p_render_
 		glColorMask(0, 0, 0, 0);
 		RasterizerGLES3::clear_depth(0.0);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		glDrawBuffers(0, nullptr);
+		// Some desktop GL implementations fall apart when using Multiview with GL_NONE.
+		GLuint db = p_camera_data->view_count > 1 ? GL_COLOR_ATTACHMENT0 : GL_NONE;
+		glDrawBuffers(1, &db);
 
 		uint64_t spec_constant = SceneShaderGLES3::DISABLE_FOG | SceneShaderGLES3::DISABLE_LIGHT_DIRECTIONAL |
 				SceneShaderGLES3::DISABLE_LIGHTMAP | SceneShaderGLES3::DISABLE_LIGHT_OMNI |
@@ -3654,7 +3662,7 @@ void RasterizerSceneGLES3::_render_uv2(const PagedArray<RenderGeometryInstance *
 		glDrawBuffers(draw_buffers.size(), draw_buffers.ptr());
 
 		glClearColor(0.0, 0.0, 0.0, 0.0);
-		RasterizerGLES3::clear_depth(1.0);
+		RasterizerGLES3::clear_depth(0.0);
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 		uint64_t base_spec_constant = 0;

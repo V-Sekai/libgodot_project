@@ -556,6 +556,7 @@ private:
 	void _plugin_over_self_own(EditorPlugin *p_plugin);
 
 	void _fs_changed();
+	void _resources_reimporting(const Vector<String> &p_resources);
 	void _resources_reimported(const Vector<String> &p_resources);
 	void _sources_changed(bool p_exist);
 
@@ -573,7 +574,7 @@ private:
 
 	void _update_undo_redo_allowed();
 
-	int _save_external_resources();
+	int _save_external_resources(bool p_also_save_external_data = false);
 
 	void _set_current_scene(int p_idx);
 	void _set_current_scene_nocheck(int p_idx);
@@ -675,6 +676,8 @@ private:
 
 	void _notify_nodes_scene_reimported(Node *p_node, Array p_reimported_nodes);
 
+	void _remove_all_not_owned_children(Node *p_node, Node *p_owner);
+
 protected:
 	friend class FileSystemDock;
 
@@ -683,6 +686,7 @@ protected:
 
 public:
 	// Public for use with callable_mp.
+	void init_plugins();
 	void _on_plugin_ready(Object *p_script, const String &p_activate_name);
 
 	void editor_select(int p_which);
@@ -764,6 +768,7 @@ public:
 
 	void push_item(Object *p_object, const String &p_property = "", bool p_inspector_only = false);
 	void push_item_no_inspector(Object *p_object);
+	void edit_previous_item();
 	void edit_item(Object *p_object, Object *p_editing_owner);
 	void push_node_item(Node *p_node);
 	void hide_unused_editors(const Object *p_editing_owner = nullptr);
@@ -783,6 +788,7 @@ public:
 	SubViewport *get_scene_root() { return scene_root; } // Root of the scene being edited.
 
 	void set_edited_scene(Node *p_scene);
+	void set_edited_scene_root(Node *p_scene, bool p_auto_add);
 	Node *get_edited_scene() { return editor_data.get_edited_scene_root(); }
 
 	void fix_dependencies(const String &p_for_file);
@@ -791,6 +797,7 @@ public:
 	Error load_resource(const String &p_resource, bool p_ignore_broken_deps = false);
 
 	HashMap<StringName, Variant> get_modified_properties_for_node(Node *p_node, bool p_node_references_only);
+	HashMap<StringName, Variant> get_modified_properties_reference_to_nodes(Node *p_node, List<Node *> &p_nodes_referenced_by);
 
 	struct AdditiveNodeEntry {
 		Node *node = nullptr;
@@ -800,8 +807,6 @@ public:
 		// Used if the original parent node is lost
 		Transform2D transform_2d;
 		Transform3D transform_3d;
-		// Used to keep track of the ownership of all ancestor nodes so they can be restored later.
-		HashMap<Node *, Node *> ownership_table;
 	};
 
 	struct ConnectionWithNodePath {
@@ -816,21 +821,38 @@ public:
 		List<Node::GroupInfo> groups;
 	};
 
-	void update_ownership_table_for_addition_node_ancestors(Node *p_current_node, HashMap<Node *, Node *> &p_ownership_table);
+	struct InstanceModificationsEntry {
+		Node *original_node;
+		String instance_path;
+		List<Node *> instance_list;
+		HashMap<NodePath, ModificationNodeEntry> modifications;
+		List<AdditiveNodeEntry> addition_list;
+	};
+
+	struct SceneModificationsEntry {
+		List<InstanceModificationsEntry> instance_list;
+		HashMap<NodePath, ModificationNodeEntry> other_instances_modifications;
+	};
+
+	HashMap<int, SceneModificationsEntry> scenes_modification_table;
+
 	void update_node_from_node_modification_entry(Node *p_node, ModificationNodeEntry &p_node_modification);
 
-	void update_node_reference_modification_table_for_node(
-			Node *p_root,
-			Node *p_node,
-			List<Node *> p_excluded_nodes,
-			HashMap<NodePath, ModificationNodeEntry> &p_modification_table);
-
-	void update_reimported_diff_data_for_node(
+	void get_preload_scene_modification_table(
 			Node *p_edited_scene,
 			Node *p_reimported_root,
+			Node *p_node, InstanceModificationsEntry &p_instance_modifications);
+
+	void get_preload_modifications_reference_to_nodes(
+			Node *p_root,
 			Node *p_node,
-			HashMap<NodePath, ModificationNodeEntry> &p_modification_table,
-			List<AdditiveNodeEntry> &p_addition_list);
+			List<Node *> &p_excluded_nodes,
+			List<Node *> &p_instance_list_with_children,
+			HashMap<NodePath, ModificationNodeEntry> &p_modification_table);
+	void get_children_nodes(Node *p_node, List<Node *> &p_nodes);
+	bool is_additional_node_in_scene(Node *p_edited_scene, Node *p_reimported_root, Node *p_node);
+
+	void replace_history_reimported_nodes(Node *p_original_root_node, Node *p_new_root_node, Node *p_node);
 
 	bool is_scene_open(const String &p_path);
 	bool is_multi_window_enabled() const;
@@ -886,7 +908,8 @@ public:
 	void reload_scene(const String &p_path);
 
 	void find_all_instances_inheriting_path_in_node(Node *p_root, Node *p_node, const String &p_instance_path, List<Node *> &p_instance_list);
-	void reload_instances_with_path_in_edited_scenes(const String &p_path);
+	void preload_reimporting_with_path_in_edited_scenes(const List<String> &p_scenes);
+	void reload_instances_with_path_in_edited_scenes();
 
 	bool is_exiting() const { return exiting; }
 
@@ -905,6 +928,7 @@ public:
 	void save_before_run();
 	void try_autosave();
 	void restart_editor();
+	void unload_editor_addons();
 
 	void dim_editor(bool p_dimming);
 	bool is_editor_dimmed() const;
@@ -912,6 +936,9 @@ public:
 	void edit_current() { _edit_current(); };
 
 	bool has_scenes_in_session();
+
+	void undo();
+	void redo();
 
 	int execute_and_show_output(const String &p_title, const String &p_path, const List<String> &p_arguments, bool p_close_on_ok = true, bool p_close_on_errors = false, String *r_output = nullptr);
 
@@ -927,12 +954,29 @@ public:
 
 struct EditorProgress {
 	String task;
-	bool step(const String &p_state, int p_step = -1, bool p_force_refresh = true) { return EditorNode::progress_task_step(task, p_state, p_step, p_force_refresh); }
+	bool step(const String &p_state, int p_step = -1, bool p_force_refresh = true) {
+		if (Thread::is_main_thread()) {
+			return EditorNode::progress_task_step(task, p_state, p_step, p_force_refresh);
+		} else {
+			EditorNode::progress_task_step_bg(task, p_step);
+			return false;
+		}
+	}
 	EditorProgress(const String &p_task, const String &p_label, int p_amount, bool p_can_cancel = false) {
-		EditorNode::progress_add_task(p_task, p_label, p_amount, p_can_cancel);
+		if (Thread::is_main_thread()) {
+			EditorNode::progress_add_task(p_task, p_label, p_amount, p_can_cancel);
+		} else {
+			EditorNode::progress_add_task_bg(p_task, p_label, p_amount);
+		}
 		task = p_task;
 	}
-	~EditorProgress() { EditorNode::progress_end_task(task); }
+	~EditorProgress() {
+		if (Thread::is_main_thread()) {
+			EditorNode::progress_end_task(task);
+		} else {
+			EditorNode::progress_end_task_bg(task);
+		}
+	}
 };
 
 class EditorPluginList : public Object {

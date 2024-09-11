@@ -969,10 +969,6 @@ void Animation::remove_track(int p_track) {
 	_check_capture_included();
 }
 
-void Animation::set_capture_included(bool p_capture_included) {
-	capture_included = p_capture_included;
-}
-
 bool Animation::is_capture_included() const {
 	return capture_included;
 }
@@ -1496,7 +1492,7 @@ void Animation::track_remove_key(int p_track, int p_idx) {
 	emit_changed();
 }
 
-int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, bool p_limit) const {
+int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, bool p_limit, bool p_backward) const {
 	ERR_FAIL_INDEX_V(p_track, tracks.size(), -1);
 	Track *t = tracks[p_track];
 
@@ -1518,7 +1514,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 				return key_index;
 			}
 
-			int k = _find(tt->positions, p_time, false, p_limit);
+			int k = _find(tt->positions, p_time, p_backward, p_limit);
 			if (k < 0 || k >= tt->positions.size()) {
 				return -1;
 			}
@@ -1545,7 +1541,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 				return key_index;
 			}
 
-			int k = _find(rt->rotations, p_time, false, p_limit);
+			int k = _find(rt->rotations, p_time, p_backward, p_limit);
 			if (k < 0 || k >= rt->rotations.size()) {
 				return -1;
 			}
@@ -1572,7 +1568,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 				return key_index;
 			}
 
-			int k = _find(st->scales, p_time, false, p_limit);
+			int k = _find(st->scales, p_time, p_backward, p_limit);
 			if (k < 0 || k >= st->scales.size()) {
 				return -1;
 			}
@@ -1599,7 +1595,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 				return key_index;
 			}
 
-			int k = _find(bst->blend_shapes, p_time, false, p_limit);
+			int k = _find(bst->blend_shapes, p_time, p_backward, p_limit);
 			if (k < 0 || k >= bst->blend_shapes.size()) {
 				return -1;
 			}
@@ -1611,7 +1607,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 		} break;
 		case TYPE_VALUE: {
 			ValueTrack *vt = static_cast<ValueTrack *>(t);
-			int k = _find(vt->values, p_time, false, p_limit);
+			int k = _find(vt->values, p_time, p_backward, p_limit);
 			if (k < 0 || k >= vt->values.size()) {
 				return -1;
 			}
@@ -1623,7 +1619,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 		} break;
 		case TYPE_METHOD: {
 			MethodTrack *mt = static_cast<MethodTrack *>(t);
-			int k = _find(mt->methods, p_time, false, p_limit);
+			int k = _find(mt->methods, p_time, p_backward, p_limit);
 			if (k < 0 || k >= mt->methods.size()) {
 				return -1;
 			}
@@ -1635,7 +1631,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 		} break;
 		case TYPE_BEZIER: {
 			BezierTrack *bt = static_cast<BezierTrack *>(t);
-			int k = _find(bt->values, p_time, false, p_limit);
+			int k = _find(bt->values, p_time, p_backward, p_limit);
 			if (k < 0 || k >= bt->values.size()) {
 				return -1;
 			}
@@ -1647,7 +1643,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 		} break;
 		case TYPE_AUDIO: {
 			AudioTrack *at = static_cast<AudioTrack *>(t);
-			int k = _find(at->values, p_time, false, p_limit);
+			int k = _find(at->values, p_time, p_backward, p_limit);
 			if (k < 0 || k >= at->values.size()) {
 				return -1;
 			}
@@ -1659,7 +1655,7 @@ int Animation::track_find_key(int p_track, double p_time, FindMode p_find_mode, 
 		} break;
 		case TYPE_ANIMATION: {
 			AnimationTrack *at = static_cast<AnimationTrack *>(t);
-			int k = _find(at->values, p_time, false, p_limit);
+			int k = _find(at->values, p_time, p_backward, p_limit);
 			if (k < 0 || k >= at->values.size()) {
 				return -1;
 			}
@@ -3189,6 +3185,20 @@ StringName Animation::method_track_get_name(int p_track, int p_key_idx) const {
 	return pm->methods[p_key_idx].method;
 }
 
+Array Animation::make_default_bezier_key(float p_value) {
+	const double max_width = length / 2.0;
+	Array new_point;
+	new_point.resize(5);
+
+	new_point[0] = p_value;
+	new_point[1] = MAX(-0.25, -max_width);
+	new_point[2] = 0;
+	new_point[3] = MIN(0.25, max_width);
+	new_point[4] = 0;
+
+	return new_point;
+}
+
 int Animation::bezier_track_insert_key(int p_track, double p_time, real_t p_value, const Vector2 &p_in_handle, const Vector2 &p_out_handle) {
 	ERR_FAIL_INDEX_V(p_track, tracks.size(), -1);
 	Track *t = tracks[p_track];
@@ -3836,7 +3846,7 @@ void Animation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("track_get_key_count", "track_idx"), &Animation::track_get_key_count);
 	ClassDB::bind_method(D_METHOD("track_get_key_value", "track_idx", "key_idx"), &Animation::track_get_key_value);
 	ClassDB::bind_method(D_METHOD("track_get_key_time", "track_idx", "key_idx"), &Animation::track_get_key_time);
-	ClassDB::bind_method(D_METHOD("track_find_key", "track_idx", "time", "find_mode", "limit"), &Animation::track_find_key, DEFVAL(FIND_MODE_NEAREST), DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("track_find_key", "track_idx", "time", "find_mode", "limit", "backward"), &Animation::track_find_key, DEFVAL(FIND_MODE_NEAREST), DEFVAL(false), DEFVAL(false));
 
 	ClassDB::bind_method(D_METHOD("track_set_interpolation_type", "track_idx", "interpolation"), &Animation::track_set_interpolation_type);
 	ClassDB::bind_method(D_METHOD("track_get_interpolation_type", "track_idx"), &Animation::track_get_interpolation_type);
@@ -3894,13 +3904,12 @@ void Animation::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("compress", "page_size", "fps", "split_tolerance"), &Animation::compress, DEFVAL(8192), DEFVAL(120), DEFVAL(4.0));
 
-	ClassDB::bind_method(D_METHOD("_set_capture_included", "capture_included"), &Animation::set_capture_included);
 	ClassDB::bind_method(D_METHOD("is_capture_included"), &Animation::is_capture_included);
 
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "length", PROPERTY_HINT_RANGE, "0.001,99999,0.001,suffix:s"), "set_length", "get_length");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "loop_mode", PROPERTY_HINT_ENUM, "None,Linear,Ping-Pong"), "set_loop_mode", "get_loop_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "step", PROPERTY_HINT_RANGE, "0,4096,0.001,suffix:s"), "set_step", "get_step");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_included", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_READ_ONLY | PROPERTY_USAGE_NO_EDITOR), "_set_capture_included", "is_capture_included");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "capture_included", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "", "is_capture_included");
 
 	BIND_ENUM_CONSTANT(TYPE_VALUE);
 	BIND_ENUM_CONSTANT(TYPE_POSITION_3D);

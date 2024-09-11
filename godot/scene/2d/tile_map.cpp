@@ -817,6 +817,8 @@ TypedArray<Vector2i> TileMap::get_surrounding_cells(const Vector2i &p_coords) {
 PackedStringArray TileMap::get_configuration_warnings() const {
 	PackedStringArray warnings = Node::get_configuration_warnings();
 
+	warnings.push_back(RTR("The TileMap node is deprecated as it is superseded by the use of multiple TileMapLayer nodes.\nTo convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with this node selected, click the toolbox icon in the top-right corner and choose \"Extract TileMap layers as individual TileMapLayer nodes\"."));
+
 	// Retrieve the set of Z index values with a Y-sorted layer.
 	RBSet<int> y_sorted_z_index;
 	for (const TileMapLayer *layer : layers) {
@@ -996,6 +998,7 @@ TileMap::TileMap() {
 		base_property_helper.register_property(PropertyInfo(Variant::INT, "z_index"), defaults->get_z_index(), &TileMap::set_layer_z_index, &TileMap::get_layer_z_index);
 		base_property_helper.register_property(PropertyInfo(Variant::BOOL, "navigation_enabled"), defaults->is_navigation_enabled(), &TileMap::set_layer_navigation_enabled, &TileMap::is_layer_navigation_enabled);
 		base_property_helper.register_property(PropertyInfo(Variant::PACKED_INT32_ARRAY, "tile_data", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), Vector<int>(), &TileMap::_set_layer_tile_data, &TileMap::_get_tile_map_data_using_compatibility_format);
+		PropertyListHelper::register_base_helper(&base_property_helper);
 
 		memdelete(defaults);
 	}

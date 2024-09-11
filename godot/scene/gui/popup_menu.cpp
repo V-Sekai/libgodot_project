@@ -589,6 +589,7 @@ void PopupMenu::_input_from_window_internal(const Ref<InputEvent> &p_event) {
 		// This allows for opening the popup and triggering an action in a single mouse click.
 		if (button_idx == MouseButton::LEFT || initial_button_mask.has_flag(mouse_button_to_mask(button_idx))) {
 			if (b->is_pressed()) {
+				during_grabbed_click = false;
 				is_scrolling = is_layout_rtl() ? b->get_position().x < item_clickable_area.position.x : b->get_position().x > item_clickable_area.size.width;
 
 				if (!item_clickable_area.has_point(b->get_position())) {
@@ -608,7 +609,7 @@ void PopupMenu::_input_from_window_internal(const Ref<InputEvent> &p_event) {
 					return;
 				}
 				// Disable clicks under a time threshold to avoid selection right when opening the popup.
-				if (was_during_grabbed_click && OS::get_singleton()->get_ticks_msec() - popup_time_msec < 150) {
+				if (was_during_grabbed_click && OS::get_singleton()->get_ticks_msec() - popup_time_msec < 400) {
 					return;
 				}
 
@@ -1064,6 +1065,7 @@ void PopupMenu::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_POST_POPUP: {
+			popup_time_msec = OS::get_singleton()->get_ticks_msec();
 			initial_button_mask = Input::get_singleton()->get_mouse_button_mask();
 			during_grabbed_click = (bool)initial_button_mask;
 		} break;
@@ -2314,6 +2316,16 @@ bool PopupMenu::is_prefer_native_menu() const {
 	return prefer_native;
 }
 
+bool PopupMenu::is_native_menu() const {
+#ifdef TOOLS_ENABLED
+	if (is_part_of_edited_scene()) {
+		return false;
+	}
+#endif
+
+	return global_menu.is_valid();
+}
+
 bool PopupMenu::activate_item_by_event(const Ref<InputEvent> &p_event, bool p_for_global_only) {
 	ERR_FAIL_COND_V(p_event.is_null(), false);
 	Key code = Key::NONE;
@@ -2643,6 +2655,7 @@ void PopupMenu::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_prefer_native_menu", "enabled"), &PopupMenu::set_prefer_native_menu);
 	ClassDB::bind_method(D_METHOD("is_prefer_native_menu"), &PopupMenu::is_prefer_native_menu);
+	ClassDB::bind_method(D_METHOD("is_native_menu"), &PopupMenu::is_native_menu);
 
 	ClassDB::bind_method(D_METHOD("add_item", "label", "id", "accel"), &PopupMenu::add_item, DEFVAL(-1), DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("add_icon_item", "texture", "label", "id", "accel"), &PopupMenu::add_icon_item, DEFVAL(-1), DEFVAL(0));
@@ -2813,6 +2826,7 @@ void PopupMenu::_bind_methods() {
 	base_property_helper.register_property(PropertyInfo(Variant::INT, "id", PROPERTY_HINT_RANGE, "0,10,1,or_greater"), defaults.id, &PopupMenu::set_item_id, &PopupMenu::get_item_id);
 	base_property_helper.register_property(PropertyInfo(Variant::BOOL, "disabled"), defaults.disabled, &PopupMenu::set_item_disabled, &PopupMenu::is_item_disabled);
 	base_property_helper.register_property(PropertyInfo(Variant::BOOL, "separator"), defaults.separator, &PopupMenu::set_item_as_separator, &PopupMenu::is_item_separator);
+	PropertyListHelper::register_base_helper(&base_property_helper);
 }
 
 void PopupMenu::popup(const Rect2i &p_bounds) {

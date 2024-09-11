@@ -139,6 +139,7 @@ struct NamesCache {
 	StringName vector2_type = StaticCString::create("Vector2");
 	StringName rect2_type = StaticCString::create("Rect2");
 	StringName vector3_type = StaticCString::create("Vector3");
+	StringName vector4_type = StaticCString::create("Vector4");
 
 	// Object not included as it must be checked for all derived classes
 	static constexpr int nullable_types_count = 18;
@@ -247,6 +248,8 @@ bool arg_default_value_is_assignable_to_type(const Context &p_context, const Var
 		case Variant::VECTOR2:
 		case Variant::RECT2:
 		case Variant::VECTOR3:
+		case Variant::VECTOR4:
+		case Variant::PROJECTION:
 		case Variant::RID:
 		case Variant::ARRAY:
 		case Variant::DICTIONARY:
@@ -274,13 +277,15 @@ bool arg_default_value_is_assignable_to_type(const Context &p_context, const Var
 		case Variant::VECTOR3I:
 			return p_arg_type.name == p_context.names_cache.vector3_type ||
 					p_arg_type.name == Variant::get_type_name(p_val.get_type());
-		default:
-			if (r_err_msg) {
-				*r_err_msg = "Unexpected Variant type: " + itos(p_val.get_type());
-			}
+		case Variant::VECTOR4I:
+			return p_arg_type.name == p_context.names_cache.vector4_type ||
+					p_arg_type.name == Variant::get_type_name(p_val.get_type());
+		case Variant::VARIANT_MAX:
 			break;
 	}
-
+	if (r_err_msg) {
+		*r_err_msg = "Unexpected Variant type: " + itos(p_val.get_type());
+	}
 	return false;
 }
 
@@ -375,8 +380,10 @@ void validate_property(const Context &p_context, const ExposedClass &p_class, co
 }
 
 void validate_argument(const Context &p_context, const ExposedClass &p_class, const String &p_owner_name, const String &p_owner_type, const ArgumentData &p_arg) {
+#ifdef DEBUG_METHODS_ENABLED
 	TEST_COND((p_arg.name.is_empty() || p_arg.name.begins_with("_unnamed_arg")),
 			vformat("Unnamed argument in position %d of %s '%s.%s'.", p_arg.position, p_owner_type, p_class.name, p_owner_name));
+#endif // DEBUG_METHODS_ENABLED
 
 	const ExposedClass *arg_class = p_context.find_exposed_class(p_arg.type);
 	if (arg_class) {
@@ -403,7 +410,7 @@ void validate_argument(const Context &p_context, const ExposedClass &p_class, co
 			err_msg += " " + type_error_msg;
 		}
 
-		TEST_COND(!arg_defval_assignable_to_type, err_msg.utf8().get_data());
+		TEST_COND(!arg_defval_assignable_to_type, err_msg);
 	}
 }
 
@@ -588,7 +595,7 @@ void add_exposed_classes(Context &r_context) {
 						exposed_class.name, method.name);
 				TEST_FAIL_COND_WARN(
 						(exposed_class.name != r_context.names_cache.object_class || String(method.name) != "free"),
-						warn_msg.utf8().get_data());
+						warn_msg);
 
 			} else if (return_info.type == Variant::INT && return_info.usage & (PROPERTY_USAGE_CLASS_IS_ENUM | PROPERTY_USAGE_CLASS_IS_BITFIELD)) {
 				method.return_type.name = return_info.class_name;
@@ -718,7 +725,7 @@ void add_exposed_classes(Context &r_context) {
 					"Signal name conflicts with %s: '%s.%s.",
 					method_conflict ? "method" : "property", class_name, signal.name);
 			TEST_FAIL_COND((method_conflict || exposed_class.find_method_by_name(signal.name)),
-					warn_msg.utf8().get_data());
+					warn_msg);
 
 			exposed_class.signals_.push_back(signal);
 		}
