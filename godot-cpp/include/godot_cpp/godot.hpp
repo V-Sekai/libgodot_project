@@ -148,6 +148,8 @@ extern "C" GDExtensionInterfacePackedVector2ArrayOperatorIndex gdextension_inter
 extern "C" GDExtensionInterfacePackedVector2ArrayOperatorIndexConst gdextension_interface_packed_vector2_array_operator_index_const;
 extern "C" GDExtensionInterfacePackedVector3ArrayOperatorIndex gdextension_interface_packed_vector3_array_operator_index;
 extern "C" GDExtensionInterfacePackedVector3ArrayOperatorIndexConst gdextension_interface_packed_vector3_array_operator_index_const;
+extern "C" GDExtensionInterfacePackedVector4ArrayOperatorIndex gdextension_interface_packed_vector4_array_operator_index;
+extern "C" GDExtensionInterfacePackedVector4ArrayOperatorIndexConst gdextension_interface_packed_vector4_array_operator_index_const;
 extern "C" GDExtensionInterfaceArrayOperatorIndex gdextension_interface_array_operator_index;
 extern "C" GDExtensionInterfaceArrayOperatorIndexConst gdextension_interface_array_operator_index_const;
 extern "C" GDExtensionInterfaceArrayRef gdextension_interface_array_ref;
@@ -190,6 +192,13 @@ extern "C" GDExtensionInterfaceClassdbUnregisterExtensionClass gdextension_inter
 extern "C" GDExtensionInterfaceGetLibraryPath gdextension_interface_get_library_path;
 extern "C" GDExtensionInterfaceEditorAddPlugin gdextension_interface_editor_add_plugin;
 extern "C" GDExtensionInterfaceEditorRemovePlugin gdextension_interface_editor_remove_plugin;
+extern "C" GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8Chars gdextension_interface_editor_help_load_xml_from_utf8_chars;
+extern "C" GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8CharsAndLen gdextension_interface_editor_help_load_xml_from_utf8_chars_and_len;
+
+class DocDataRegistration {
+public:
+	DocDataRegistration(const char *p_hash, int p_uncompressed_size, int p_compressed_size, const unsigned char *p_data);
+};
 
 } // namespace internal
 

@@ -154,6 +154,8 @@ GDExtensionInterfacePackedVector2ArrayOperatorIndex gdextension_interface_packed
 GDExtensionInterfacePackedVector2ArrayOperatorIndexConst gdextension_interface_packed_vector2_array_operator_index_const = nullptr;
 GDExtensionInterfacePackedVector3ArrayOperatorIndex gdextension_interface_packed_vector3_array_operator_index = nullptr;
 GDExtensionInterfacePackedVector3ArrayOperatorIndexConst gdextension_interface_packed_vector3_array_operator_index_const = nullptr;
+GDExtensionInterfacePackedVector4ArrayOperatorIndex gdextension_interface_packed_vector4_array_operator_index = nullptr;
+GDExtensionInterfacePackedVector4ArrayOperatorIndexConst gdextension_interface_packed_vector4_array_operator_index_const = nullptr;
 GDExtensionInterfaceArrayOperatorIndex gdextension_interface_array_operator_index = nullptr;
 GDExtensionInterfaceArrayOperatorIndexConst gdextension_interface_array_operator_index_const = nullptr;
 GDExtensionInterfaceArrayRef gdextension_interface_array_ref = nullptr;
@@ -196,6 +198,38 @@ GDExtensionInterfaceClassdbUnregisterExtensionClass gdextension_interface_classd
 GDExtensionInterfaceGetLibraryPath gdextension_interface_get_library_path = nullptr;
 GDExtensionInterfaceEditorAddPlugin gdextension_interface_editor_add_plugin = nullptr;
 GDExtensionInterfaceEditorRemovePlugin gdextension_interface_editor_remove_plugin = nullptr;
+GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8Chars gdextension_interface_editor_help_load_xml_from_utf8_chars = nullptr;
+GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8CharsAndLen gdextension_interface_editor_help_load_xml_from_utf8_chars_and_len = nullptr;
+
+struct DocData {
+	const char *hash = nullptr;
+	int uncompressed_size = 0;
+	int compressed_size = 0;
+	const unsigned char *data = nullptr;
+
+	inline bool is_valid() const {
+		return hash != nullptr && uncompressed_size > 0 && compressed_size > 0 && data != nullptr;
+	}
+
+	void load_data() const;
+};
+
+static DocData &get_doc_data() {
+	static DocData doc_data;
+	return doc_data;
+}
+
+DocDataRegistration::DocDataRegistration(const char *p_hash, int p_uncompressed_size, int p_compressed_size, const unsigned char *p_data) {
+	DocData &doc_data = get_doc_data();
+	if (doc_data.is_valid()) {
+		printf("ERROR: Attempting to register documentation data when we already have some - discarding.\n");
+		return;
+	}
+	doc_data.hash = p_hash;
+	doc_data.uncompressed_size = p_uncompressed_size;
+	doc_data.compressed_size = p_compressed_size;
+	doc_data.data = p_data;
+}
 
 } // namespace internal
 
@@ -394,6 +428,8 @@ GDExtensionBool GDExtensionBinding::init(GDExtensionInterfaceGetProcAddress p_ge
 	LOAD_PROC_ADDRESS(packed_vector2_array_operator_index_const, GDExtensionInterfacePackedVector2ArrayOperatorIndexConst);
 	LOAD_PROC_ADDRESS(packed_vector3_array_operator_index, GDExtensionInterfacePackedVector3ArrayOperatorIndex);
 	LOAD_PROC_ADDRESS(packed_vector3_array_operator_index_const, GDExtensionInterfacePackedVector3ArrayOperatorIndexConst);
+	LOAD_PROC_ADDRESS(packed_vector4_array_operator_index, GDExtensionInterfacePackedVector4ArrayOperatorIndex);
+	LOAD_PROC_ADDRESS(packed_vector4_array_operator_index_const, GDExtensionInterfacePackedVector4ArrayOperatorIndexConst);
 	LOAD_PROC_ADDRESS(array_operator_index, GDExtensionInterfaceArrayOperatorIndex);
 	LOAD_PROC_ADDRESS(array_operator_index_const, GDExtensionInterfaceArrayOperatorIndexConst);
 	LOAD_PROC_ADDRESS(array_ref, GDExtensionInterfaceArrayRef);
@@ -436,6 +472,8 @@ GDExtensionBool GDExtensionBinding::init(GDExtensionInterfaceGetProcAddress p_ge
 	LOAD_PROC_ADDRESS(get_library_path, GDExtensionInterfaceGetLibraryPath);
 	LOAD_PROC_ADDRESS(editor_add_plugin, GDExtensionInterfaceEditorAddPlugin);
 	LOAD_PROC_ADDRESS(editor_remove_plugin, GDExtensionInterfaceEditorRemovePlugin);
+	LOAD_PROC_ADDRESS(editor_help_load_xml_from_utf8_chars, GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8Chars);
+	LOAD_PROC_ADDRESS(editor_help_load_xml_from_utf8_chars_and_len, GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8CharsAndLen);
 
 	r_initialization->initialize = initialize_level;
 	r_initialization->deinitialize = deinitialize_level;
@@ -465,6 +503,13 @@ void GDExtensionBinding::initialize_level(void *p_userdata, GDExtensionInitializ
 		ClassDB::initialize(p_level);
 	}
 	level_initialized[p_level]++;
+
+	if ((ModuleInitializationLevel)p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
+		const internal::DocData &doc_data = internal::get_doc_data();
+		if (doc_data.is_valid()) {
+			doc_data.load_data();
+		}
+	}
 }
 
 void GDExtensionBinding::deinitialize_level(void *p_userdata, GDExtensionInitializationLevel p_level) {
@@ -529,6 +574,17 @@ void GDExtensionBinding::InitObject::set_minimum_library_initialization_level(Mo
 
 GDExtensionBool GDExtensionBinding::InitObject::init() const {
 	return GDExtensionBinding::init(get_proc_address, library, init_data, initialization);
+}
+
+void internal::DocData::load_data() const {
+	PackedByteArray compressed;
+	compressed.resize(compressed_size);
+	memcpy(compressed.ptrw(), data, compressed_size);
+
+	// FileAccess::COMPRESSION_DEFLATE = 1
+	PackedByteArray decompressed = compressed.decompress(uncompressed_size, 1);
+
+	internal::gdextension_interface_editor_help_load_xml_from_utf8_chars_and_len(reinterpret_cast<const char *>(decompressed.ptr()), uncompressed_size);
 }
 
 } // namespace godot

@@ -1582,7 +1582,6 @@ typedef void (*GDExtensionInterfaceStringNewWithLatin1CharsAndLen)(GDExtensionUn
 /**
  * @name string_new_with_utf8_chars_and_len
  * @since 4.1
- * @deprecated in Godot 4.3. Use `string_new_with_utf8_chars_and_len2` instead.
  *
  * Creates a String from a UTF-8 encoded C string with the given length.
  *
@@ -1593,23 +1592,8 @@ typedef void (*GDExtensionInterfaceStringNewWithLatin1CharsAndLen)(GDExtensionUn
 typedef void (*GDExtensionInterfaceStringNewWithUtf8CharsAndLen)(GDExtensionUninitializedStringPtr r_dest, const char *p_contents, GDExtensionInt p_size);
 
 /**
- * @name string_new_with_utf8_chars_and_len2
- * @since 4.3
- *
- * Creates a String from a UTF-8 encoded C string with the given length.
- *
- * @param r_dest A pointer to a Variant to hold the newly created String.
- * @param p_contents A pointer to a UTF-8 encoded C string.
- * @param p_size The number of bytes (not code units).
- *
- * @return Error code signifying if the operation successful.
- */
-typedef GDExtensionInt (*GDExtensionInterfaceStringNewWithUtf8CharsAndLen2)(GDExtensionUninitializedStringPtr r_dest, const char *p_contents, GDExtensionInt p_size);
-
-/**
  * @name string_new_with_utf16_chars_and_len
  * @since 4.1
- * @deprecated in Godot 4.3. Use `string_new_with_utf16_chars_and_len2` instead.
  *
  * Creates a String from a UTF-16 encoded C string with the given length.
  *
@@ -1618,21 +1602,6 @@ typedef GDExtensionInt (*GDExtensionInterfaceStringNewWithUtf8CharsAndLen2)(GDEx
  * @param p_size The number of characters (not bytes).
  */
 typedef void (*GDExtensionInterfaceStringNewWithUtf16CharsAndLen)(GDExtensionUninitializedStringPtr r_dest, const char16_t *p_contents, GDExtensionInt p_char_count);
-
-/**
- * @name string_new_with_utf16_chars_and_len2
- * @since 4.3
- *
- * Creates a String from a UTF-16 encoded C string with the given length.
- *
- * @param r_dest A pointer to a Variant to hold the newly created String.
- * @param p_contents A pointer to a UTF-16 encoded C string.
- * @param p_size The number of characters (not bytes).
- * @param p_default_little_endian If true, UTF-16 use little endian.
- *
- * @return Error code signifying if the operation successful.
- */
-typedef GDExtensionInt (*GDExtensionInterfaceStringNewWithUtf16CharsAndLen2)(GDExtensionUninitializedStringPtr r_dest, const char16_t *p_contents, GDExtensionInt p_char_count, GDExtensionBool p_default_little_endian);
 
 /**
  * @name string_new_with_utf32_chars_and_len
@@ -1929,36 +1898,6 @@ typedef void (*GDExtensionInterfaceFileAccessStoreBuffer)(GDExtensionObjectPtr p
  * @return The actual number of bytes read (may be less than requested).
  */
 typedef uint64_t (*GDExtensionInterfaceFileAccessGetBuffer)(GDExtensionConstObjectPtr p_instance, uint8_t *p_dst, uint64_t p_length);
-
-/* INTERFACE: Image Utilities */
-
-/**
- * @name image_ptrw
- * @since 4.3
- *
- * Returns writable pointer to internal Image buffer.
- *
- * @param p_instance A pointer to a Image object.
- *
- * @return Pointer to internal Image buffer.
- *
- * @see Image::ptrw()
- */
-typedef uint8_t *(*GDExtensionInterfaceImagePtrw)(GDExtensionObjectPtr p_instance);
-
-/**
- * @name image_ptr
- * @since 4.3
- *
- * Returns read only pointer to internal Image buffer.
- *
- * @param p_instance A pointer to a Image object.
- *
- * @return Pointer to internal Image buffer.
- *
- * @see Image::ptr()
- */
-typedef const uint8_t *(*GDExtensionInterfaceImagePtr)(GDExtensionObjectPtr p_instance);
 
 /* INTERFACE: WorkerThreadPool Utilities */
 
@@ -2445,9 +2384,6 @@ typedef void (*GDExtensionInterfaceObjectSetInstance)(GDExtensionObjectPtr p_o, 
  *
  * Gets the class name of an Object.
  *
- * If the GDExtension wraps the Godot object in an abstraction specific to its class, this is the
- * function that should be used to determine which wrapper to use.
- *
  * @param p_object A pointer to the Object.
  * @param p_library A pointer the library received by the GDExtension's entry point function.
  * @param r_class_name A pointer to a String to receive the class name.
@@ -2722,7 +2658,7 @@ typedef void *(*GDExtensionInterfaceClassdbGetClassTag)(GDExtensionConstStringNa
 /**
  * @name classdb_register_extension_class
  * @since 4.1
- * @deprecated in Godot 4.2. Use `classdb_register_extension_class3` instead.
+ * @deprecated in Godot 4.2. Use `classdb_register_extension_class2` instead.
  *
  * Registers an extension class in the ClassDB.
  *
@@ -2738,7 +2674,6 @@ typedef void (*GDExtensionInterfaceClassdbRegisterExtensionClass)(GDExtensionCla
 /**
  * @name classdb_register_extension_class2
  * @since 4.2
- * @deprecated in Godot 4.3. Use `classdb_register_extension_class3` instead.
  *
  * Registers an extension class in the ClassDB.
  *
@@ -2800,16 +2735,12 @@ typedef void (*GDExtensionInterfaceClassdbRegisterExtensionClassVirtualMethod)(G
  *
  * Registers an integer constant on an extension class in the ClassDB.
  *
- * Note about registering bitfield values (if p_is_bitfield is true): even though p_constant_value is signed, language bindings are
- * advised to treat bitfields as uint64_t, since this is generally clearer and can prevent mistakes like using -1 for setting all bits.
- * Language APIs should thus provide an abstraction that registers bitfields (uint64_t) separately from regular constants (int64_t).
- *
  * @param p_library A pointer the library received by the GDExtension's entry point function.
  * @param p_class_name A pointer to a StringName with the class name.
  * @param p_enum_name A pointer to a StringName with the enum name.
  * @param p_constant_name A pointer to a StringName with the constant name.
  * @param p_constant_value The constant value.
- * @param p_is_bitfield Whether or not this constant is part of a bitfield.
+ * @param p_is_bitfield Whether or not this is a bit field.
  */
 typedef void (*GDExtensionInterfaceClassdbRegisterExtensionClassIntegerConstant)(GDExtensionClassLibraryPtr p_library, GDExtensionConstStringNamePtr p_class_name, GDExtensionConstStringNamePtr p_enum_name, GDExtensionConstStringNamePtr p_constant_name, GDExtensionInt p_constant_value, GDExtensionBool p_is_bitfield);
 
@@ -2956,14 +2887,6 @@ typedef void (*GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8Chars)(const char *
  * @param p_size The number of bytes (not code units).
  */
 typedef void (*GDExtensionsInterfaceEditorHelpLoadXmlFromUtf8CharsAndLen)(const char *p_data, GDExtensionInt p_size);
-
-typedef GDExtensionObjectPtr (*GDExtensionInterfaceCreateGodotInstance)(int p_argc, char *p_argv[], GDExtensionInitializationFunction p_init_func);
-typedef void (*GDExtensionInterfaceDestroyGodotInstance)(GDExtensionObjectPtr p_godot_instance);
-
-#if defined(_WIN32)
-__declspec(dllexport)
-#endif
-		GDExtensionObjectPtr gdextension_create_godot_instance(int p_argc, char *p_argv[], GDExtensionInitializationFunction p_init_func);
 
 #ifdef __cplusplus
 }
