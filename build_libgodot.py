@@ -27,8 +27,7 @@ if precision == "single":
 lib_suffix = "so"
 host_debug = 1
 debug = 1
-force_host_rebuild = 1
-force_regenerate = 0
+force_regenerate = 1
 
 if host_system == 'Linux':
     host_platform = "linuxbsd"
@@ -52,9 +51,7 @@ else:
 args = sys.argv[1:]
 while args:
     arg = args.pop(0)
-    if arg == "--host-rebuild":
-        force_host_rebuild = 1
-    elif arg == "--host-debug":
+    if arg == "--host-debug":
         host_debug = 1
     elif arg == "--regenerate":
         force_regenerate = 1
@@ -95,24 +92,19 @@ target_godot_suffix += f".{target_arch}"
 host_godot = os.path.join(GODOT_DIR, "bin", f"godot.{host_godot_suffix}")
 target_godot = os.path.join(GODOT_DIR, "bin", f"libgodot.{target_godot_suffix}.{lib_suffix}")
 
-if not os.access(host_godot, os.X_OK) or force_host_rebuild == 1:
-    if os.path.exists(host_godot):
-        os.remove(host_godot)
-    command = "scons"
-    platform = f"{host_platform}"
-    target = f"{host_target}"
-    options = host_build_options.split()
-    run_args = [command, platform, target] + options
-    subprocess.run(run_args, 
-        cwd=GODOT_DIR
-    )
+if os.path.exists(host_godot):
+    os.remove(host_godot)
+command = "scons"
+platform = f"{host_platform}"
+target = f"{host_target}"
+options = host_build_options.split()
+run_args = [command, f"platform={target_platform}", f"target={target}", "library_type=shared_library"] + options
+subprocess.run(run_args, cwd=GODOT_DIR)
 
 os.makedirs(BUILD_DIR, exist_ok=True)
-
-options = target_build_options.split()
-subprocess.run(["scons", f"platform={target_platform}", f"target={target}"] + options + ["library_type=shared_library"], cwd=GODOT_DIR)
 if not os.path.isfile(os.path.join(BUILD_DIR, "extension_api.json")) or force_regenerate == 1:
     subprocess.run([host_godot, "--dump-extension-api"], cwd=BUILD_DIR)
+subprocess.run(["scons", f"platform={target_platform}", f"target={target}"] + options + ["library_type=shared_library"], cwd=GODOT_DIR)
 subprocess.run(["cp", "-v", target_godot, os.path.join(BUILD_DIR, f"libgodot.{lib_suffix}")], cwd=GODOT_DIR)
 
 subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
