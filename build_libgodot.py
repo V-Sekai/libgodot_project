@@ -98,7 +98,7 @@ command = "scons"
 platform = f"{host_platform}"
 target = f"{host_target}"
 options = host_build_options.split()
-run_args = [command, f"platform={target_platform}", f"target={target}", "library_type=shared_library"] + options
+run_args = [command, f"platform={target_platform}", f"target={target}", "library_type=executable"] + options
 subprocess.run(run_args, cwd=GODOT_DIR)
 
 os.makedirs(BUILD_DIR, exist_ok=True)
