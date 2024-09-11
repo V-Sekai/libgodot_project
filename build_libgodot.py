@@ -27,7 +27,7 @@ if precision == "single":
 lib_suffix = "so"
 host_debug = 1
 debug = 1
-force_host_rebuild = 0
+force_host_rebuild = 1
 force_regenerate = 0
 
 if host_system == 'Linux':
@@ -109,11 +109,10 @@ if not os.access(host_godot, os.X_OK) or force_host_rebuild == 1:
 
 os.makedirs(BUILD_DIR, exist_ok=True)
 
+options = target_build_options.split()
+subprocess.run(["scons", f"platform={target_platform}", f"target={target}"] + options + ["library_type=shared_library"], cwd=GODOT_DIR)
 if not os.path.isfile(os.path.join(BUILD_DIR, "extension_api.json")) or force_regenerate == 1:
     subprocess.run([host_godot, "--dump-extension-api"], cwd=BUILD_DIR)
-
-options = target_build_options.split()
-subprocess.run(["scons", f"p={target_platform}", f"target={target}"] + options + ["library_type=shared_library"], cwd=GODOT_DIR)
 subprocess.run(["cp", "-v", target_godot, os.path.join(BUILD_DIR, f"libgodot.{lib_suffix}")], cwd=GODOT_DIR)
 
 subprocess.run(["cp", "-v", os.path.join(BUILD_DIR, "extension_api.json"), os.path.join(GODOT_CPP_DIR, "gdextension")], cwd=GODOT_DIR)
